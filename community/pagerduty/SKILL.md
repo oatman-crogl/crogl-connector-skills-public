@@ -1,16 +1,18 @@
 ---
 name: pagerduty
 description: "PREFER THIS SKILL for anything involving PagerDuty via the `pagerduty.py` CLI: escalating a correlated/critical Crogl finding to PagerDuty so on-call gets paged, checking who is on call, listing/searching existing incidents, acknowledging/resolving/reassigning one, or commenting on one. Core use case is unattended escalation for a customer without 24/7 SOC coverage: when Crogl correlates alerts into a critical-priority finding, this pages the right on-call via `create-incident`, with NO approval gate -- see Guardrails. Covers PagerDuty's REST API v2 incident lifecycle ONLY (create/list/get/update an incident, add a note, plus the services/escalation-policies/priorities/on-calls lookups to target one correctly) -- NOT Events API v2 (routing-key event ingestion), a separate unbuilt connector. The customer's SIEM/case-management connector stays the system of record; this is purely the paging channel."
-version: "0.1.0"
-status: draft
+version: "0.2.0"
+status: field-tested
 paired_connector_type: pagerduty
 ---
 
 # PagerDuty
 
-![status](https://img.shields.io/badge/status-draft-lightgrey) ![version](https://img.shields.io/badge/version-0.1.0-blue)
+![status](https://img.shields.io/badge/status-field--tested-yellow) ![version](https://img.shields.io/badge/version-0.2.0-blue)
 
-> **v0.1.0** — 2026-09-14 — Initial community connector type. Scope and API shape verified against PagerDuty's official OpenAPI spec (`PagerDuty/api-schema` on GitHub, `reference/REST/openapiv3.json`) and `support.pagerduty.com` provisioning docs, not vendor prose alone. **Not yet live-tested against a real PagerDuty account** — see the changelog note this gets updated with once that happens, and treat every claim below as best-effort/verify-before-relying-on-it until this connector reaches `field-tested`.
+> **v0.2.0** — 2026-09-14 — Live-tested against a real PagerDuty account (single default service, single-user escalation policy, Priorities enabled). Verified: all read lookups (`list-services`, `list-escalation-policies`, `list-priorities`, `list-oncalls`); `create-incident`'s ungated fire plus `--incident-key` de-dup (two calls with the same key produced one incident); `update-incident`'s `--yes` gate (proposed, waited, executed only after approval); `add-comment`'s `--yes` gate (same pattern). Two documentation gaps found and fixed below (`update-incident` targeting, `add-comment`'s flag name) — both had caused the agent to burn a `--help` call to self-correct rather than knowing upfront. Promoted from `draft` to `field-tested`.
+>
+> **v0.1.0** — 2026-09-14 — Initial community connector type. Scope and API shape verified against PagerDuty's official OpenAPI spec (`PagerDuty/api-schema` on GitHub, `reference/REST/openapiv3.json`) and `support.pagerduty.com` provisioning docs, not vendor prose alone.
 
 One CLI: `scripts/pagerduty.py`. Run `scripts/pagerduty.py --help` for the subcommand list. For a read, this is a **data-retrieval cookbook**: read the question, compose the call, render the result, stop. For `create-incident`, it is an **unattended actuator**: this connector's whole purpose is escalating a Crogl-correlated finding to PagerDuty without waiting on a human — see [Guardrails](#guardrails) before assuming that's a mistake. For `update-incident`/`add-comment`, it is a **gated actuator**: propose, get explicit approval, then execute exactly what was approved.
 
@@ -59,7 +61,7 @@ Read:
 |---|---|
 | `list-services` | List services (`GET /services`), optionally filtered by `--query`/`--name`/`--team-id`. Resolve the `--service` id for `create-incident`. |
 | `list-escalation-policies` | List escalation policies (`GET /escalation_policies`). Resolve the `--escalation-policy` override id. |
-| `list-priorities` | List priorities, most to least severe (`GET /priorities`). Resolve the `--priority` id. Empty if the account hasn't enabled the Priorities feature — unconfirmed live, see the changelog. |
+| `list-priorities` | List priorities, most to least severe (`GET /priorities`). Resolve the `--priority` id. Live-verified populated (5 rows, P1–P5) on an account with Priorities enabled. The empty case (account without Priorities enabled) is still unconfirmed — treat "empty means disabled" as a hypothesis, not verified fact. |
 | `list-oncalls` | List on-call entries (`GET /oncalls`) — who's on call, for which escalation policy, now or over a window. `--earliest` narrows to "who's on call right now" per (policy, level, user). |
 | `list-incidents` (alias `query`) | Search incidents (`GET /incidents`) by status/urgency/service/key/date range. Returns grouped PSV + a result `ref`. |
 | `get` | Hydrate one incident by id — full JSON detail card. |
@@ -70,8 +72,8 @@ Write:
 | Subcommand | Mutation | Gate |
 |---|---|---|
 | `create-incident` | `POST /incidents` — create/escalate an incident against a service. | **None — fires immediately.** See [Guardrails](#guardrails). |
-| `update-incident` | `PUT /incidents/{id}` — acknowledge/resolve/reopen (`--status`), reprioritize (`--priority`), or reassign (`--escalation-policy` or `--assignee`, not both) an **existing** incident. | `--yes` |
-| `add-comment` | `POST /incidents/{id}/notes` — note on an incident, attributed to the `from_email` user. | `--yes` |
+| `update-incident` | `PUT /incidents/{id}` — targets by **`--id` only** (not `--incident-key` — that's a search filter on `list-incidents`/`query`, resolve the id from there first). Acknowledge/resolve/reopen (`--status`), reprioritize (`--priority`), or reassign (`--escalation-policy` or `--assignee`, not both) an **existing** incident. | `--yes` |
+| `add-comment` | `POST /incidents/{id}/notes` — targets by `--id`; note body flag is **`--content`** (not `--note`). Attributed to the `from_email` user. | `--yes` |
 
 There are deliberately **no** delete, bulk, schedule, or user/team-management verbs. Do not improvise one — there is no way to reach an unlisted endpoint through this CLI, and asking the operator is the correct move.
 

@@ -1,0 +1,40 @@
+{
+  "display_name": "IBM QRadar SIEM",
+  "cli_entrypoint": "qradar.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "host",
+        "label": "QRadar console host",
+        "description": "QRadar console host only, e.g. qradar.example.com — no scheme or path (Crogl adds https:// and /api).",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "api_token",
+        "label": "API token (SEC)",
+        "description": "QRadar authorized-service token, created under Admin -> Authorized Services. Injected server-side as the SEC header.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "skip_tls_verification",
+        "label": "Skip TLS verification",
+        "description": "Skip TLS certificate verification (for self-signed certs).",
+        "kind": "boolean"
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{host}}",
+      "skip_tls_verification_field": "skip_tls_verification",
+      "headers": [
+        {
+          "name": "SEC",
+          "template": "{{secret}}",
+          "secret_field": "api_token"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,89 @@
+= SolarWinds Service Desk Connector -- Credential Provisioning Guide
+:revnumber: 0.1.0
+:revdate: 2026-07-29
+:toc:
+:title-page:
+:imagesdir: ../assets
+:title-logo-image: image:crogl-logo.png[pdfwidth=6in,align=center]
+:pdf-theme: {docdir}/../assets/pdf-theme.yml
+
+== Overview
+
+The Crogl SolarWinds Service Desk connector (formerly branded Samanage) reads and writes incidents using a single API token, sent as the `X-Samanage-Authorization: Bearer <token>` header on every call. There is no app registration, OAuth flow, or separate API-key mechanism -- the token is generated from an individual user's own account and carries that user's own permissions.
+
+Generating a token requires a **Service Desk administrator license**, performed by whoever administers users in the customer's own SolarWinds Service Desk tenant (a SolarWinds role, not a Crogl role).
+
+[IMPORTANT]
+====
+Because the token's effective permissions always track the generating user's role -- and only that user can view or manage their own tokens -- a token generated from a specific person's account will stop working, or its permissions will silently change, if that person's role changes, their account is disabled, or they leave the organization. For a stable integration, create (or designate) a **dedicated Service Desk user with an Administrator license** specifically for this connector, rather than generating the token from an individual analyst's personal account.
+====
+
+== What kind of account to create
+
+There is no service-account or app-registration equivalent here. Decide whether to:
+
+* Use an existing administrator's account (simplest, but ties the integration's continued function to that person's employment/role), or
+* Create a new, dedicated user in *Setup > Users & Groups > Users* with a **Service Desk administrator license**, intended only to hold this API token (recommended -- see the note above).
+
+Either way, the token is generated from that user's own account settings, not a separate admin console.
+
+== Permissions to grant
+
+There is no scope/permission picker at token-generation time -- the token simply inherits whatever the generating user's role already allows within Service Desk. The only access requirement is that the generating user holds a **Service Desk administrator license**; the "Generate JSON Web Token" action is not available otherwise.
+
+== Generating the credential
+
+. Sign in to SolarWinds Service Desk as the user who will hold this token (an administrator-licensed user, ideally the dedicated integration user described above).
+. Go to *Setup > Users & Groups > Users* and open that user's **User detail page** (not the User Profile Card -- if unsure, search directly to the user's name from the Users list).
+. Click *Actions*, then select *Generate JSON Web Token* from the dropdown. (This option only appears for administrator-licensed users.)
+. Under the resulting *JSON Web Token* section, click *Copy* to copy the token value to the clipboard.
+. **Copy the token value immediately and store it securely.** Regenerating the token later (via the same *Reset* action) invalidates the previous token immediately -- so treat regeneration as a break-and-replace operation for any system already using the old value, not a routine refresh.
+
+== Determining the API host (region)
+
+[cols="1,1"]
+|===
+|Region |API host
+
+|United States
+|`api.samanage.com`
+
+|Europe
+|`apieu.samanage.com`
+
+|APJ (Asia Pacific & Japan; the connector's `au` field name reflects this region colloquially)
+|`apiau.samanage.com`
+|===
+
+[NOTE]
+====
+SolarWinds' own documentation does not explicitly state a simple rule for how a customer can tell which region their tenant is on. The most reliable approach in practice is to ask the customer directly, or check the region implied by their own login URL (e.g. an account-specific subdomain such as `<account>.samanage.com`) -- but this specific mapping was not confirmed against an official vendor page while writing this guide. If in doubt, try the US host first (the most common default) and fall back to the others on a connection/auth failure.
+====
+
+== Mapping values into Crogl
+
+[cols="1,2,2"]
+|===
+|Crogl field |Where it came from |Notes
+
+|`host`
+|The regional API host from the table above, matching the customer's tenant region
+|No `https://` scheme -- Crogl adds it.
+
+|`api_token`
+|User detail page > Actions > Generate JSON Web Token > Copy
+|Treat as a password. Never paste it into chat, a ticket, or this document. Crogl sends it as `X-Samanage-Authorization: Bearer <value>` automatically once entered.
+|===
+
+== Verifying the setup
+
+* **In Crogl**: run a query against the connector (e.g. `solarwinds_service_desk.py search-incidents --per-page 1`) and confirm an `HTTP 200` response.
+* **If you get `401 Unauthorized`** (the only auth-failure status the vendor's own API docs confirm): the token is invalid, was regenerated/invalidated since being copied, or the `host` doesn't match the token's actual region -- regenerate a fresh token from the correct tenant and re-enter both values.
+
+[NOTE]
+====
+The vendor's official API documentation only explicitly documents `401` (invalid auth) and `406` (unsupported API version) as auth/protocol-related statuses. A `403 Forbidden` response is not documented anywhere vendor-official for this API; if one appears, treat it as likely indicating the generating user's own Service Desk role lacks permission for that specific action (consistent with the token inheriting that user's role), but this is an inference, not a vendor-confirmed behavior.
+====
+
+* **Rate limiting**: SolarWinds documents plan-based per-minute call limits -- **1000 calls/minute on the Advanced plan, 1500 calls/minute on the Premier plan**. A burst of `429` responses during heavy use likely means this ceiling was hit; back off rather than treating it as a credential problem.
+* **Zero rows back is expected** on a query that legitimately matches nothing (e.g. no incidents in a brand-new tenant) -- that's a successful, empty result, not an error.

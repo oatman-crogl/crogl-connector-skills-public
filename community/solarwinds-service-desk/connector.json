@@ -1,0 +1,33 @@
+{
+  "display_name": "SolarWinds Service Desk",
+  "cli_entrypoint": "solarwinds_service_desk.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "host",
+        "label": "API host",
+        "description": "SolarWinds Service Desk API host without scheme. US tenants usually use api.samanage.com; EU/AU tenants use apieu.samanage.com or apiau.samanage.com.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "api_token",
+        "label": "API token",
+        "description": "JSON Web Token generated from the SolarWinds Service Desk user setup page.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{host}}",
+      "headers": [
+        {
+          "name": "X-Samanage-Authorization",
+          "template": "Bearer {{secret}}",
+          "secret_field": "api_token"
+        }
+      ]
+    }
+  }
+}

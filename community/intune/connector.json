@@ -1,0 +1,40 @@
+{
+  "display_name": "Microsoft Intune",
+  "cli_entrypoint": "intune.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "tenant_id",
+        "label": "Azure tenant ID",
+        "description": "Azure AD (Entra ID) tenant ID.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "client_id",
+        "label": "Client ID",
+        "description": "App registration (service principal) client ID.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "client_secret",
+        "label": "Client secret",
+        "description": "App registration client secret.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://graph.microsoft.com",
+      "oauth2": {
+        "token_url": "https://login.microsoftonline.com/{{tenant_id}}/oauth2/v2.0/token",
+        "client_id": "{{client_id}}",
+        "client_secret_field": "client_secret",
+        "scopes": "https://graph.microsoft.com/.default",
+        "client_auth_method": "body"
+      }
+    }
+  }
+}

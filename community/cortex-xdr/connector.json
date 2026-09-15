@@ -1,0 +1,46 @@
+{
+  "display_name": "Palo Alto Cortex XDR",
+  "cli_entrypoint": "cortex_xdr.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "api_host",
+        "label": "Cortex XDR API host",
+        "description": "Tenant-specific Cortex XDR API FQDN, no scheme or path -- for example api-company.us.paloaltonetworks.com. Use the API Keys page's Copy API URL / CURL Example flow to recover the tenant host.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "key_id",
+        "label": "API Key ID",
+        "description": "The numeric ID shown for the generated API key in Settings -> Configurations -> Integrations -> API Keys. Crogl sends it as the x-xdr-auth-id header.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "api_key",
+        "label": "API key (Standard)",
+        "description": "Standard-type Cortex XDR API key. Crogl sends it as the raw Authorization header value. Advanced keys are not supported because they require a per-request SHA256(api_key + nonce + timestamp) signature.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{api_host}}",
+      "headers": [
+        {
+          "name": "x-xdr-auth-id",
+          "template": "{{secret}}",
+          "secret_field": "key_id"
+        },
+        {
+          "name": "Authorization",
+          "template": "{{secret}}",
+          "secret_field": "api_key"
+        }
+      ]
+    }
+  }
+}

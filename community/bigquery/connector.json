@@ -1,0 +1,47 @@
+{
+  "display_name": "BigQuery",
+  "cli_entrypoint": "bigquery.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "project_id",
+        "label": "GCP Project ID",
+        "description": "The Google Cloud project containing the BigQuery datasets.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "default_dataset",
+        "label": "Default dataset",
+        "description": "Optional default dataset for unqualified table references.",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "dashboard_tickets_table",
+        "label": "Dashboard tickets table",
+        "description": "Optional fully-qualified BigQuery table (dataset.table) backing the ticket-dashboard cards. When set, also export BIGQUERY_DASHBOARD_TABLE in the agent container environment with the same value so the CLI can read it at runtime.",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "service_account_json",
+        "label": "Service account JSON key",
+        "description": "Optional GCP service account JSON key. Leave empty on GCE or other environments where Application Default Credentials are available.",
+        "kind": "string",
+        "secret": true,
+        "required": false
+      }
+    ],
+    "binding": {
+      "base_url": "https://bigquery.googleapis.com/bigquery/v2/projects/{{project_id}}",
+      "headers": [
+        {
+          "name": "X-Crogl-BQ-SA",
+          "template": "{{secret}}",
+          "secret_field": "service_account_json"
+        }
+      ]
+    }
+  }
+}

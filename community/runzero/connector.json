@@ -1,0 +1,40 @@
+{
+  "display_name": "runZero",
+  "cli_entrypoint": "runzero.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "console_host",
+        "label": "runZero console host",
+        "description": "Console host only, e.g. console.runzero.com for the SaaS platform, or your self-hosted console's FQDN -- no scheme or path (Crogl adds https:// and /api/v1.0).",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "api_token",
+        "label": "Export token (ET)",
+        "description": "runZero Export Token (starts with ET), created under Organizations -> [org] -> Edit organization -> Export tokens. Read-only; scoped to the /api/v1.0/export path for this one organization. Injected server-side as the Authorization: Bearer header.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "skip_tls_verification",
+        "label": "Skip TLS verification",
+        "description": "Skip TLS certificate verification (for self-hosted consoles presenting a self-signed or internal-CA certificate).",
+        "kind": "boolean"
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{console_host}}/api/v1.0",
+      "skip_tls_verification_field": "skip_tls_verification",
+      "headers": [
+        {
+          "name": "Authorization",
+          "template": "Bearer {{secret}}",
+          "secret_field": "api_token"
+        }
+      ]
+    }
+  }
+}

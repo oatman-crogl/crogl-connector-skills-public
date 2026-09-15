@@ -1,0 +1,85 @@
+= Palo Alto Cortex XSOAR Connector -- Credential Provisioning Guide
+:revnumber: 0.1.0
+:revdate: 2026-07-29
+:toc:
+:title-page:
+:imagesdir: ../assets
+:title-logo-image: image:crogl-logo.png[pdfwidth=6in,align=center]
+:pdf-theme: {docdir}/../assets/pdf-theme.yml
+
+== Overview
+
+The Crogl Palo Alto Cortex XSOAR connector reads incidents from a Cortex XSOAR 8 tenant's REST API using a single **Standard-type API key**, sent as two headers (`x-xdr-auth-id` and `Authorization`) on every call. There is no OAuth flow and no app registration -- one key, generated once in the XSOAR console, covers every endpoint this connector uses.
+
+Generating that key requires access to **Settings & Info > Settings > Integrations > API Keys** in the XSOAR console, which is gated by XSOAR's own role/permission system -- whoever generates the key needs a role with permission to manage API keys (an XSOAR role, not a Crogl role). If you're an FDE walking a customer through this live, expect their XSOAR administrator to drive the console while you confirm the resulting values.
+
+[IMPORTANT]
+====
+The console menu paths and label names below are reconstructed from Palo Alto Networks' published Cortex XSOAR 8 API documentation, not confirmed against a live console while writing this guide. Steps that could not be confirmed are marked *(verify against the customer's console)*.
+====
+
+[NOTE]
+====
+Cortex XSOAR 8 offers two API key types: **Standard** and **Advanced**. This connector supports **Standard** keys only -- Advanced keys require the calling application to compute a per-request `SHA256(api_key + nonce + timestamp)` signature, which Crogl's connector auth model (static headers) cannot produce. Make sure whoever generates the key selects **Standard**, not Advanced, in step 4 below.
+====
+
+== What kind of account to create
+
+Cortex XSOAR 8's model is not a separate app registration; it is an **API key** generated from an existing XSOAR user account and explicitly assigned a **role** at creation time, the same way a user's own permissions are role-based. The key's effective permissions are whatever role you assign it -- not automatically the permissions of the user who generated it. Assign the narrowest role that can list and read incidents; do not assign an administrator role to this key just because an administrator is the one generating it *(exact predefined role names -- e.g. an out-of-the-box read-only analyst role -- verify against the customer's console, since role sets are customizable per tenant)*.
+
+== Permissions to grant
+
+* **Role assigned to the API key.** Chosen from a dropdown of predefined or custom XSOAR roles at key-creation time. It needs, at minimum, permission to view/read incidents. Since this connector is read-only, do not grant an incident-management/write role if a narrower read-only role exists on this tenant.
+* **Key type: Standard.** Not a permission in the RBAC sense, but a mandatory choice at creation time -- see the note above. Selecting Advanced here will produce a key this connector cannot authenticate with.
+
+There is no separate admin-consent or approval step as in an OAuth flow; the only gate is that the user generating the key must themselves have permission to reach **Settings & Info > Settings > Integrations > API Keys**.
+
+== Generating the credential
+
+*(Menu path per Palo Alto Networks documentation -- verify against the customer's console.)*
+
+. Sign in to the Cortex XSOAR 8 tenant.
+. Open **Settings & Info > Settings > Integrations > API Keys**.
+. Click **New Key**.
+. Choose key type **Standard** (see the note above -- do not choose Advanced).
+. Optionally enable **Enable Expiration Date** and set an expiry; XSOAR shows expiration reminders one week and one day before the key lapses. If the customer's security policy requires periodic rotation, set one; otherwise a key with no expiration is simplest to operate.
+. Optionally add a **Comment** describing the key's purpose (e.g. "Crogl connector -- read-only").
+. Select the **role** to assign (see <<Permissions to grant>>).
+. Click **Generate**.
+. **Copy the displayed API key value immediately** -- this is the value Crogl needs for `api_key`. XSOAR will not show it again once you click Close; if it's lost, generate a new key rather than trying to recover the value.
+. Click **Close**.
+. In the API Keys table, note the **ID** column value for the key you just created -- this is the `key_id` value Crogl needs (`x-xdr-auth-id`).
+
+You also need the tenant's **API FQDN**. Per Palo Alto Networks documentation, this is obtained by right-clicking the generated key's row and selecting **View Examples**, which shows a cURL example whose URL contains the host to copy *(this specific right-click interaction was not independently re-confirmed against a live console for this guide -- verify against the customer's console)*. The FQDN is typically of the form `api-<tenant-id>.paloaltonetworks.com` and is unique per tenant.
+
+== Mapping values into Crogl
+
+Three values map to `community/palo-alto-xsoar/connector.json`'s `credential_schema.fields` when creating the connector instance in Crogl:
+
+[cols="1,2,2"]
+|===
+|Crogl field |Where it came from |Notes
+
+|`api_host`
+|The FQDN copied from the generated key's **View Examples** cURL example
+|No `+https://+` prefix and no path -- just the host (e.g. `api-abc123.paloaltonetworks.com`). Crogl builds the API base URL `+https://<api_host>/xsoar/public/v1+` for you.
+
+|`key_id`
+|The **ID** column value for the generated key, in Settings & Info > Settings > Integrations > API Keys
+|Sent as the `x-xdr-auth-id` header. Not the key value itself, but treat it as sensitive since it identifies the credential.
+
+|`api_key`
+|The API key value shown once at generation time
+|Treat as a password. Never paste it into chat, a ticket, or this document. Crogl sends it as the `Authorization` header automatically once entered.
+|===
+
+== Verifying the setup
+
+Right after creating the connector instance in Crogl, confirm the setup:
+
+* **Success**: a simple incident query (e.g. asking Crogl to "show open incidents") returns `HTTP 200` with incident rows. An empty result (`total: 0`) on a filtered query is a valid, successful empty response, not an error.
+* **`401`**: the `api_key` value is wrong, was truncated when copied, or the key has passed its expiration date -- generate a new Standard-type key in the XSOAR console and re-enter both `key_id` and `api_key`.
+* **`403`**: the key authenticated, but the **role assigned to it lacks incident-read permission** -- widen the assigned role (see <<Permissions to grant>>) rather than re-checking the key value. This is the most common "right credential, wrong permission" case.
+* **A signature/authentication error that specifically mentions a nonce or timestamp**: the key was generated as **Advanced** type instead of Standard -- this connector cannot use an Advanced key. Generate a new Standard-type key and replace `key_id`/`api_key`.
+* **An error indicating the search endpoint is unsupported in this environment**: per Palo Alto Networks documentation, `/incidents/search` is not supported in multi-tenant XSOAR deployments -- if this tenant is a multi-tenant deployment, this is an environment limitation, not a misconfigured credential.
+* **Wrong-host / connection error before any XSOAR response**: the `api_host` value is wrong, includes a scheme or path it shouldn't, or doesn't match the tenant the key was generated on -- re-copy it from the key's **View Examples** cURL example.

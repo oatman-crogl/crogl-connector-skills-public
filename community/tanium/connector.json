@@ -1,0 +1,33 @@
+{
+  "display_name": "Tanium",
+  "cli_entrypoint": "tanium.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "api_host",
+        "label": "Tanium Cloud API host",
+        "description": "Tanium Cloud API host, no scheme or path -- e.g. acme-api.cloud.tanium.com (the '-api' subdomain used by Tanium Gateway). This connector targets Tanium Cloud only; on-prem Tanium API surfaces differ and are not covered.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "api_token",
+        "label": "API token",
+        "description": "Tanium API token, sent as the raw value of the 'session' header on every request. Create one from Tanium Console: Administration -> Permissions -> API Tokens. Scope its persona/role to read-only access for Asset, Comply, Patch, and Threat Response.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{api_host}}",
+      "headers": [
+        {
+          "name": "session",
+          "template": "{{secret}}",
+          "secret_field": "api_token"
+        }
+      ]
+    }
+  }
+}

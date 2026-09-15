@@ -1,0 +1,47 @@
+{
+  "display_name": "Windows Update for Business reports",
+  "cli_entrypoint": "windows_update_reports.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "tenant_id",
+        "label": "Azure tenant ID",
+        "description": "Azure AD (Entra ID) tenant ID.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "client_id",
+        "label": "Client ID",
+        "description": "App registration (service principal) client ID.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "client_secret",
+        "label": "Client secret",
+        "description": "App registration client secret.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "workspace_id",
+        "label": "Log Analytics workspace ID",
+        "description": "GUID of the Log Analytics workspace this tenant's WUfB reports data is routed to -- the \"Workspace ID\" field on that workspace's Overview page in the Azure portal, not the subscription ID or the ARM resource ID.",
+        "kind": "string",
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://api.loganalytics.azure.com/v1/workspaces/{{workspace_id}}",
+      "oauth2": {
+        "token_url": "https://login.microsoftonline.com/{{tenant_id}}/oauth2/v2.0/token",
+        "client_id": "{{client_id}}",
+        "client_secret_field": "client_secret",
+        "scopes": "https://api.loganalytics.io/.default",
+        "client_auth_method": "body"
+      }
+    }
+  }
+}

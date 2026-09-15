@@ -1,0 +1,124 @@
+= Palo Alto Cortex XDR Connector -- Credential Provisioning Guide
+:revnumber: 0.1.0
+:revdate: 2026-08-20
+:toc:
+:title-page:
+:imagesdir: ../assets
+:title-logo-image: image:crogl-logo.png[pdfwidth=6in,align=center]
+:pdf-theme: {docdir}/../assets/pdf-theme.yml
+
+== Overview
+
+The Crogl Palo Alto Cortex XDR connector reads **alerts**, **incidents**, and **endpoint inventory** from the Cortex XDR public API using a single **Standard API key**. There is no OAuth flow and no app registration -- one API key, paired with its API Key ID and tenant API host, is enough to authenticate every endpoint this connector uses.
+
+Generating that key requires access to the Cortex API-key management UI. If you're an FDE walking a customer through this live, expect their Cortex administrator to drive the console while you confirm the resulting values.
+
+[IMPORTANT]
+====
+This guide was written from Palo Alto Networks' published Cortex XDR 5.x API and provisioning documentation, not from a live tenant. The menu paths below come directly from those docs and should be treated as docs-grounded guidance. If the customer's console labels differ slightly, follow the nearest equivalent UI.
+====
+
+[NOTE]
+====
+Cortex XDR offers two API-key types: **Standard** and **Advanced**. This Crogl connector supports **Standard** keys only. Advanced keys require a per-request `SHA256(api_key + nonce + timestamp)` authorization hash plus `x-xdr-nonce` and `x-xdr-timestamp` headers, which Crogl's static credential binding cannot generate.
+====
+
+== What kind of account to create
+
+Cortex XDR does **not** require a separate service account or app registration for this connector. Instead, create an **API key** in the customer's Cortex tenant and assign it a role.
+
+Per Palo Alto's docs, the role selected during key creation can be a predefined or custom role coming from Cortex Gateway / Cortex XSIAM access management. Use the narrowest role that still allows the key to **read alerts, read incidents, and read endpoint inventory**. Do not assign a write-capable or administrator-level role just because an administrator is the one generating the key.
+
+If the customer uses Scope-Based Access Control (SBAC), the key can also be scoped during creation. If you apply scope restrictions, confirm the chosen scope still covers the data Crogl needs to query.
+
+== Permissions to grant
+
+The vendor docs reviewed for this build do not publish one canonical permission-name list specifically for the three read endpoints this connector uses. Because of that, the safest guidance is:
+
+* Assign a role that can **read alerts**.
+* Assign a role that can **read incidents**.
+* Assign a role that can **read endpoints / endpoint inventory**.
+* Keep the key type at **Standard**.
+* If SBAC is enabled, ensure the scope includes the relevant endpoint groups / incident visibility the customer expects Crogl to see.
+
+[IMPORTANT]
+====
+If the tenant uses a custom RBAC model, verify the exact effective permissions with the customer's Cortex administrator before assuming a predefined role is sufficient. The connector is read-only and does not need response-action, incident-edit, or endpoint-mutation permissions.
+====
+
+== Generating the credential
+
+. Sign in to Cortex XDR.
+. Navigate to *Settings > Configurations > Integrations > API Keys*.
+. Select *New Key*.
+. In the *Role* tab:
+.. Under *Security Level*, choose *Standard*.
+.. Under *Role*, select the desired read-oriented role.
+.. Optionally add a *Comment* describing the key's purpose, for example `Crogl connector - read only`.
+.. Optionally enable *Expiration Date* if the customer's credential-rotation policy requires it.
+. If the tenant uses SBAC and the customer wants this key scoped, open the *Scope* tab and configure the desired scope.
+. Select *Generate*.
+. **Copy the API key value immediately**, then select *Close*. This is the value Crogl stores as `api_key` and Cortex will not show it again after closing the dialog.
+
+== Getting the remaining values
+
+You also need two additional values from the same API Keys page:
+
+. In the API Keys table, note the key's **ID** value. This is the `key_id` Crogl stores and sends as the `x-xdr-auth-id` header.
+. On the API Keys page, click *Copy API URL* (the docs also note you can use the *CURL Example* URL). This gives you the tenant-specific API URL.
+
+Crogl does **not** want the full copied URL. It wants only the tenant host portion, stored as `api_host`.
+
+Example:
+
+[cols="1,2"]
+|===
+|Copied API URL example |Value to store in Crogl `api_host`
+
+|+https://api-company.us.paloaltonetworks.com/public_api/v1/incidents/get_incidents+
+|+api-company.us.paloaltonetworks.com+
+|===
+
+== Mapping values into Crogl
+
+Three values map to `community/cortex-xdr/connector.json`'s `credential_schema.fields` when creating the connector instance in Crogl:
+
+[cols="1,2,2"]
+|===
+|Crogl field |Where it came from |Notes
+
+|`api_host`
+|The host portion of the copied API URL / CURL Example
+|No `+https://+` prefix and no path -- just the hostname, for example `api-company.us.paloaltonetworks.com`.
+
+|`key_id`
+|The API key's *ID* value from the API Keys table
+|Crogl sends this as the `x-xdr-auth-id` header.
+
+|`api_key`
+|The API key value shown once at generation time
+|Treat as a password. Never paste it into chat, a ticket, or this document.
+|===
+
+Crogl combines these into requests such as +https://api-company.us.paloaltonetworks.com/public_api/v1/incidents/get_incidents+ and attaches the stored headers automatically.
+
+== Verifying the setup
+
+Right after creating the connector instance in Crogl, confirm the setup with a small read-only call:
+
+* `cortex_xdr.py query-alerts --limit 1`
+* `cortex_xdr.py query-incidents --limit 1`
+* `cortex_xdr.py list-endpoints --limit 1`
+
+Expected outcomes:
+
+* **Success**: `HTTP 200` with one or more rows, or a valid empty result if the tenant simply has no matching data.
+* **`401`**: the `api_key` value is wrong, truncated, expired, or the key was generated as *Advanced* rather than *Standard*.
+* **`403`**: the key authenticated but the selected role or scope does not allow that resource. Widen the role or scope rather than re-copying the same credential.
+* **Host / connection error before any Cortex response**: the `api_host` value is wrong or includes a scheme/path instead of just the hostname.
+* **`429` on extra incident detail**: `get_incident_extra_data` has a vendor-documented limit of **10 requests per minute**. Wait 60 seconds before retrying.
+
+[NOTE]
+====
+The general Cortex XDR API docs also call out a tenant-wide rate limit of **10 requests per second**. For smoke tests, keep validation calls small and infrequent.
+====

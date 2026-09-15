@@ -1,0 +1,39 @@
+{
+  "display_name": "PagerDuty",
+  "cli_entrypoint": "pagerduty.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "api_key",
+        "label": "REST API key",
+        "description": "PagerDuty REST API v2 key, created under Configuration -> API Access -> Create New API Key (Account Manager/Admin role required). Must NOT be a Read-only API Key -- this connector's create-incident/update-incident/add-comment writes need full access. Injected server-side as Authorization: Token token=<key>.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "from_email",
+        "label": "Acting user email (From header)",
+        "description": "Email address of a real, active PagerDuty user on this account. PagerDuty requires this as the From header on every write call (create/update an incident, add a note) to attribute the action to a user; it is ignored on read calls. Not a secret value, but stored as one because connector.json's header-binding schema requires every bound header to carry a secret field -- see SKILL.md's Auth Recap for the tradeoff (this field cannot be viewed or edited after the connector is created, only replaced).",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://api.pagerduty.com",
+      "headers": [
+        {
+          "name": "Authorization",
+          "template": "Token token={{secret}}",
+          "secret_field": "api_key"
+        },
+        {
+          "name": "From",
+          "template": "{{secret}}",
+          "secret_field": "from_email"
+        }
+      ]
+    }
+  }
+}

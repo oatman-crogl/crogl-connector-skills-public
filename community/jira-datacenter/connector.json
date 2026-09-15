@@ -1,0 +1,40 @@
+{
+  "display_name": "Jira Data Center",
+  "cli_entrypoint": "jira.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "host",
+        "label": "Jira Data Center host",
+        "description": "Jira Data Center host (and context path if any), e.g. jira.example.com or jira.example.com/jira — no scheme (Crogl adds https://). Do NOT include /rest/api/2.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "api_token",
+        "label": "Personal Access Token (PAT)",
+        "description": "Jira Data Center Personal Access Token, created under Profile -> Personal Access Tokens (Jira 8.14+). Injected server-side as the Authorization: Bearer header.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "skip_tls_verification",
+        "label": "Skip TLS verification",
+        "description": "Skip TLS certificate verification. Enable for on-prem installs presenting a self-signed or internal-CA certificate.",
+        "kind": "boolean"
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{host}}",
+      "skip_tls_verification_field": "skip_tls_verification",
+      "headers": [
+        {
+          "name": "Authorization",
+          "template": "Bearer {{secret}}",
+          "secret_field": "api_token"
+        }
+      ]
+    }
+  }
+}

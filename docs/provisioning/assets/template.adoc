@@ -1,0 +1,62 @@
+= <Vendor Product> Connector -- Credential Provisioning Guide
+:revnumber: 0.1.0
+:revdate: <YYYY-MM-DD>
+:toc:
+:title-page:
+:imagesdir: ../assets
+:title-logo-image: image:crogl-logo.png[pdfwidth=6in,align=center]
+:pdf-theme: {docdir}/../assets/pdf-theme.yml
+
+// Copy this file to docs/provisioning/<connector-type>/provisioning.adoc,
+// replace every <placeholder> below, then delete this comment block.
+//
+// Cross-reference community/<connector-type>/connector.json's
+// credential_schema.fields for what values are required -- this guide
+// explains how a human obtains each one, it doesn't restate the schema.
+//
+// Build: docs/provisioning/assets/adoc2pdf.sh <connector-type>
+
+== Overview
+
+// One paragraph: what this connector needs from the customer's <vendor>
+// account/tenant, and who should perform these steps (which admin role
+// in their system -- not a Crogl role).
+
+== What kind of account to create
+
+// Service account / app registration / API user -- whichever the vendor
+// calls it. Where in the vendor's admin console this happens. If it's
+// not an app registration equivalent, say so explicitly (some vendors
+// only offer a shared service-account pattern).
+
+== Permissions to grant
+
+// Exact permission/scope name(s) required.
+//
+// If the vendor's UI has more than one permission *type* that can share
+// the same display name (e.g. Delegated vs Application in Entra), call
+// that out explicitly -- name the trap, don't just say "pick the right
+// one." Cite the vendor's real UI labels, not a paraphrase.
+//
+// Consent/approval requirement (admin consent, workspace admin approval,
+// etc.) and how to grant it.
+
+== Generating the credential
+
+// API key / client secret / token creation steps, expiry considerations,
+// where to copy any account/tenant identifiers the credential depends on.
+
+== Mapping values into Crogl
+
+// One row per connector.json credential_schema field. Use a table:
+// | Crogl field | Where it came from | Notes |
+// Cross-reference field keys; don't restate connector.json's descriptions.
+
+== Verifying the setup
+
+// How to confirm the setup is correct before/after creating the connector
+// instance in Crogl. Name expected success/failure responses (status
+// codes, error messages) and what each one actually means -- distinguish
+// "wrong credential" from "right credential, wrong permission" from
+// "right permission, consent not granted," since these often produce
+// identical-looking failures to an admin who isn't a vendor-API expert.

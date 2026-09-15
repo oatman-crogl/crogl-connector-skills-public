@@ -1,0 +1,89 @@
+= Microsoft Intune Connector -- Credential Provisioning Guide
+:revnumber: 0.1.0
+:revdate: 2026-07-15
+:toc:
+:title-page:
+:imagesdir: ../assets
+:title-logo-image: image:crogl-logo.png[pdfwidth=6in,align=center]
+:pdf-theme: {docdir}/../assets/pdf-theme.yml
+
+== Overview
+
+The Crogl Intune connector reads managed-device inventory from Microsoft Graph (`/v1.0/deviceManagement/managedDevices`). It authenticates as an application, not as a signed-in user, using the OAuth2 client-credentials grant -- so there is no interactive login step and no per-analyst account. Everything in this guide happens once, in the customer's own Microsoft Entra ID tenant, before the connector is configured in Crogl.
+
+These steps require **Global Administrator** or **Application Administrator** access in the customer's tenant, plus a role that can grant admin consent (Global Administrator or Privileged Role Administrator). If you're an FDE walking a customer through this live, expect their tenant admin to drive the Entra admin center while you confirm each value.
+
+== What kind of account to create
+
+Create an **app registration** (a service principal), not a user account.
+
+. Sign in to the https://entra.microsoft.com[Microsoft Entra admin center] as a Global Administrator or Application Administrator.
+. Go to *Identity > Applications > App registrations > New registration*.
+. Name it something identifiable, e.g. `Crogl Intune Connector`.
+. Supported account type: **Single tenant** (accounts in this organizational directory only).
+. Leave *Redirect URI* blank -- the client-credentials grant is unattended and never redirects a browser.
+. Select *Register*.
+
+After registration, the app's **Overview** page shows two of the three values this guide ends with: the **Application (client) ID** and the **Directory (tenant) ID**.
+
+== Permissions to grant
+
+. In the app registration, go to *API permissions > Add a permission > Microsoft Graph*.
+. On the permission-type screen, select the **Application permissions** tile -- not Delegated. There is no signed-in user in this flow (client-credentials grant), so a Delegated grant will never work here, no matter what's added under it.
+. Search for `DeviceManagementManagedDevices.Read.All` and select it.
+. Select *Add permissions*.
+. Back on the API permissions page, select *Grant admin consent for <tenant name>* and confirm.
+
+[WARNING]
+====
+`DeviceManagementManagedDevices.Read.All` exists as **two distinct permissions with the identical name** -- one under the Delegated tile, one under Application. Entra's UI does not disambiguate them beyond which tile you picked before searching. It's entirely possible to add the Delegated one, grant admin consent on it, and see everything show a green "Granted" status -- and the connector will still fail with `403` at query time, because a client-credentials token can never satisfy a Delegated grant.
+
+The reliable check afterward: on the *API permissions* page, the *Type* column next to `DeviceManagementManagedDevices.Read.All` must read **Application**, not *Delegated*. If it reads Delegated, remove it and re-add it from the Application permissions tile.
+====
+
+The permission shows a status of **Granted** once consent succeeds. Skipping admin consent is the second most common setup mistake here -- Graph returns `HTTP 403` on every query until it's granted, even when the (correct, Application-type) permission is already added.
+
+[NOTE]
+====
+This connector only reads `managed-devices` today. If a future resource needs a different Graph permission, add it here and re-grant consent -- don't over-grant permissions the connector doesn't use.
+====
+
+== Generating the credential
+
+. In the app registration, go to *Certificates & secrets > Client secrets > New client secret*.
+. Add a description (e.g. `crogl-connector`) and an expiry consistent with the customer's credential-rotation policy.
+. Select *Add*.
+. **Copy the secret's Value immediately** -- Entra shows it once, at creation time, and never again. If it's missed, delete the secret and generate a new one; there is no way to retrieve a lost value.
+
+== Mapping values into Crogl
+
+Three values from the steps above map directly to `community/intune/connector.json`'s `credential_schema.fields` when creating the connector instance in Crogl:
+
+[cols="1,2,2"]
+|===
+|Crogl field |Where it came from |Notes
+
+|`tenant_id`
+|App registration *Overview* > Directory (tenant) ID
+|Identifies the customer's Entra tenant.
+
+|`client_id`
+|App registration *Overview* > Application (client) ID
+|Identifies this specific app registration.
+
+|`client_secret`
+|*Certificates & secrets* > the secret *Value* copied at creation
+|Treat as a password. Never paste it into chat, a ticket, or this document.
+|===
+
+Crogl exchanges these server-side for a bearer token via `\https://login.microsoftonline.com/<tenant_id>/oauth2/v2.0/token` (client-credentials grant, `\https://graph.microsoft.com/.default` scope) and attaches it automatically on every Graph call -- no further action needed once the three values are entered.
+
+== Verifying the setup
+
+Before handing credentials to Crogl, or right after creating the connector instance, confirm the setup is correct:
+
+* **In Entra**: API permissions shows `DeviceManagementManagedDevices.Read.All` with *Type* = **Application** (not Delegated) and *Status* = *Granted for <tenant>*.
+* **In Crogl**: run a query against the connector (e.g. `intune.py query --resource managed-devices --filter "" --limit 1`) and confirm an `HTTP 200` response.
+* **If you get `401`**: the client ID, tenant ID, or secret value is wrong, or the secret has expired -- re-check each value against the app registration.
+* **If you get `403`**: check the *Type* column first -- this is almost always the Delegated-vs-Application mix-up above, not a consent problem. If Type already reads Application, admin consent likely wasn't granted -- revisit <<Permissions to grant>>.
+* **Zero rows back is expected** on a tenant with no enrolled devices yet -- that's a successful, empty query, not an error.

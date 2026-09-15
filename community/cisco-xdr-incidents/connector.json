@@ -1,0 +1,47 @@
+{
+  "display_name": "Cisco XDR Incidents & Investigations",
+  "cli_entrypoint": "cisco_xdr_incidents.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "api_host",
+        "label": "Cisco XDR (Conure) API host",
+        "description": "The Incidents & Investigations (Conure v2) API host for your tenant's region -- literal host only, no scheme. Use exactly one of: conure.us.security.cisco.com (US/default), conure.eu.security.cisco.com (EU), conure.apjc.security.cisco.com (APJC). Confirm your tenant's region from the domain of your Cisco XDR console login URL (xdr.<region>.security.cisco.com).",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "token_host",
+        "label": "Cisco XDR OAuth2 token host",
+        "description": "The OAuth2 token host for your tenant's region -- literal host only, no scheme. Use exactly one of: visibility.amp.cisco.com (US/default -- note: no region prefix, unlike the API host above), visibility.eu.amp.cisco.com (EU), visibility.apjc.amp.cisco.com (APJC). This is a separate field from api_host because Cisco's own naming convention for the token host and the Conure API host diverge for the US/default region.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "client_id",
+        "label": "API Client ID",
+        "description": "Client ID from an Administration > API Clients entry (Client Credentials Grant type), Cisco XDR console.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "client_secret",
+        "label": "API Client Password",
+        "description": "Client Password shown once at API Client creation time. Crogl exchanges this (Basic client_id:client_password) for a short-lived Bearer access token server-side; the API Client's own granted scopes -- not this field -- govern what the token can reach.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{api_host}}",
+      "oauth2": {
+        "token_url": "https://{{token_host}}/iroh/oauth2/token",
+        "client_id": "{{client_id}}",
+        "client_secret_field": "client_secret",
+        "scopes": "global-intel:read private-intel:read event:read enrich:read asset",
+        "client_auth_method": "basic"
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+extends: default
+title_page:
+  logo:
+    top: 8%
+  title:
+    top: 42%

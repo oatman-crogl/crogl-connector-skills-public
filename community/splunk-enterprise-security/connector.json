@@ -1,0 +1,40 @@
+{
+  "display_name": "Splunk Enterprise Security",
+  "cli_entrypoint": "splunk_enterprise_security.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "stack",
+        "label": "Splunk stack host:port",
+        "description": "Splunk Enterprise Security stack management endpoint, host and port only, e.g. splunk.example.com:8089 or stack123.splunkcloud.com:8089 -- no scheme (Crogl adds https://). 8089 is the default Splunk management port for both Splunk Enterprise and Splunk Cloud; change only if an admin has customized the management port.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "auth_token",
+        "label": "Authentication token",
+        "description": "Splunk authentication token for a service account granted the mc_investigation_read, mc_risk_score_write, mc_assets_read, and mc_identity_read capabilities (or the blanket admin_all_objects). Generated under Settings -> Tokens. Injected server-side as the Authorization: Bearer header.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "skip_tls_verification",
+        "label": "Skip TLS verification",
+        "description": "Skip TLS certificate verification (for self-signed certs).",
+        "kind": "boolean"
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{stack}}/servicesNS/nobody/missioncontrol",
+      "skip_tls_verification_field": "skip_tls_verification",
+      "headers": [
+        {
+          "name": "Authorization",
+          "template": "Bearer {{secret}}",
+          "secret_field": "auth_token"
+        }
+      ]
+    }
+  }
+}

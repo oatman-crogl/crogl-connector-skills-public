@@ -1,0 +1,109 @@
+= Windows Update for Business reports Connector -- Credential Provisioning Guide
+:revnumber: 0.1.0
+:revdate: 2026-07-16
+:toc:
+:title-page:
+:imagesdir: ../assets
+:title-logo-image: image:crogl-logo.png[pdfwidth=6in,align=center]
+:pdf-theme: {docdir}/../assets/pdf-theme.yml
+
+== Overview
+
+The Crogl Windows Update for Business (WUfB) reports connector runs KQL queries (`POST .../query`) against a customer's Azure Monitor Log Analytics workspace, reading the device-compliance and update-status data WUfB reports collects there. It authenticates as an application, not as a signed-in user, using the OAuth2 client-credentials grant -- so there is no interactive login step and no per-analyst account. Everything in this guide happens once, in the customer's own Microsoft Entra ID tenant and Azure subscription, before the connector is configured in Crogl.
+
+[IMPORTANT]
+====
+This connector's permission model is **not** the Microsoft Graph API-permission-plus-admin-consent pattern used by Crogl's Intune or Defender connectors. Access here is gated purely by an **Azure RBAC role assignment on the Log Analytics workspace resource itself**. There is no API permission to add and no admin consent to grant -- see <<Permissions to grant>>.
+====
+
+[NOTE]
+====
+This is a Windows Update for Business reports tenant prerequisite, not a Crogl requirement: the tenant must already be **enrolled into WUfB reports** and pointed at a specific Log Analytics workspace before any of this will return data. That enrollment step is Azure-portal-only -- Microsoft does not support doing it via API or CLI -- and is separate from everything in this guide. If it hasn't happened yet, no credential fix here will produce data; see <<Verifying the setup>> for how to tell the difference.
+====
+
+These steps require **Application Administrator** or **Global Administrator** access in the customer's Entra tenant to create the app registration, plus **Owner** or **User Access Administrator** on the Log Analytics workspace (or an equivalent custom role that can manage IAM) to grant the RBAC role. If you're an FDE walking a customer through this live, expect their tenant/Azure admin to drive the Entra and Azure portals while you confirm each value.
+
+== What kind of account to create
+
+Create an **app registration** (a service principal), not a user account.
+
+. Sign in to the https://entra.microsoft.com[Microsoft Entra admin center] as a Global Administrator or Application Administrator.
+. Go to *Identity > Applications > App registrations > New registration*.
+. Name it something identifiable, e.g. `Crogl WUfB Reports Connector`.
+. Supported account type: **Single tenant** (accounts in this organizational directory only).
+. Leave *Redirect URI* blank -- the client-credentials grant is unattended and never redirects a browser.
+. Select *Register*.
+
+After registration, the app's **Overview** page shows two of the four values this guide ends with: the **Application (client) ID** and the **Directory (tenant) ID**.
+
+== Permissions to grant
+
+[WARNING]
+====
+Do **not** go looking for a Log Analytics API permission in this app registration's *API permissions* blade -- there isn't one to add, and no admin consent step exists for this connector. This is the opposite failure mode from Defender/Intune (where the mistake is looking in the wrong API list); here the mistake is spending time in *API permissions* at all when the actual gate lives somewhere else entirely: Azure RBAC on the workspace resource.
+====
+
+. In the https://portal.azure.com[Azure portal], find the specific **Log Analytics workspace** that this tenant's WUfB reports data is routed to (confirm with whoever set up WUfB reports enrollment if you're not sure which one it is -- there may be several workspaces in the subscription).
+. Open that workspace, then go to *Access control (IAM) > Add > Add role assignment*.
+. Search for and select the **Log Analytics Reader** role.
++
+[cols="1,2"]
+|===
+|Role |Why
+
+|`Log Analytics Reader`
+|Read access to query data in the workspace -- the least-privileged role, and all this connector needs since it never writes.
+
+|`Log Analytics Contributor`
+|Only needed if something must create or edit the workspace itself or its saved queries. This connector never does either -- don't grant it.
+|===
+. On the *Members* tab, select *Select members*, then search by the app registration's name. App registrations are service principals, not users -- if the search doesn't find it under a default "Users" filter, confirm the picker is searching service principals/apps, not just user accounts.
+. Select the app, then *Review + assign*.
+
+Unlike Graph admin consent, this takes effect as an ordinary Azure RBAC assignment -- there is no separate "grant consent" click, and no tenant-wide propagation delay beyond Azure's usual (typically a few minutes) RBAC propagation window.
+
+While in the workspace, also copy its **Workspace ID** from the *Overview* page -- a GUID, distinct from the Azure subscription ID and from the workspace's ARM resource ID. This is the fourth credential value below.
+
+== Generating the credential
+
+. In the app registration, go to *Certificates & secrets > Client secrets > New client secret*.
+. Add a description (e.g. `crogl-connector`) and an expiry consistent with the customer's credential-rotation policy.
+. Select *Add*.
+. **Copy the secret's Value immediately** -- Entra shows it once, at creation time, and never again. If it's missed, delete the secret and generate a new one; there is no way to retrieve a lost value.
+
+== Mapping values into Crogl
+
+Four values map directly to the `credential_schema.fields` in `community/windows-update-reports/connector.json` when creating the connector instance in Crogl:
+
+[cols="1,2,2"]
+|===
+|Crogl field |Where it came from |Notes
+
+|`tenant_id`
+|App registration *Overview* > Directory (tenant) ID
+|Identifies the customer's Entra tenant.
+
+|`client_id`
+|App registration *Overview* > Application (client) ID
+|Identifies this specific app registration.
+
+|`client_secret`
+|*Certificates & secrets* > the secret *Value* copied at creation
+|Treat as a password. Never paste it into chat, a ticket, or this document.
+
+|`workspace_id`
+|Log Analytics workspace *Overview* > Workspace ID
+|Identifies which workspace to query. Not the subscription ID or the ARM resource ID -- those look similar (all GUIDs) but are different values found on different pages.
+|===
+
+Crogl exchanges the first three values server-side for a bearer token via `\https://login.microsoftonline.com/<tenant_id>/oauth2/v2.0/token` (client-credentials grant, `\https://api.loganalytics.io/.default` scope) and attaches it automatically on every call to `\https://api.loganalytics.azure.com/v1/workspaces/<workspace_id>/query` -- no further action needed once all four values are entered.
+
+== Verifying the setup
+
+Before handing credentials to Crogl, or right after creating the connector instance, confirm the setup is correct:
+
+* **In Azure**: the workspace's *Access control (IAM) > Role assignments* (or *View access*) shows the app registration's service principal with the **Log Analytics Reader** role on this specific workspace.
+* **In Crogl**: run a query against the connector (e.g. `windows_update_reports.py query --query "UCClient | take 1" --limit 1`) and confirm an `HTTP 200` response.
+* **If you get `401`**: the client ID, tenant ID, or secret value is wrong, or the secret has expired -- re-check each value against the app registration.
+* **If you get `403`**: this almost always means the RBAC role assignment is missing, was assigned on the wrong workspace, or `workspace_id` in Crogl points at a different workspace than the one the role was granted on -- re-check <<Permissions to grant>>. It is very unlikely to mean a bad credential value if `401` isn't also occurring.
+* **If you get `200` with zero rows**: this can be a real, valid empty result -- but it can also mean WUfB reports isn't enrolled onto this workspace at all yet, or enrollment just happened and is still within its propagation window (Microsoft documents 24-48 hours before any data appears, and up to 14 days for all devices in the tenant to show up). Run `UCClient | summarize count() by TimeGenerated` as a health check: if that's also empty, the gap is upstream of this connector's credentials entirely (WUfB reports enrollment/propagation), not something to keep troubleshooting here.

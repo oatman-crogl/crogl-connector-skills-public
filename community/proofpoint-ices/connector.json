@@ -1,0 +1,33 @@
+{
+  "display_name": "Proofpoint Email Security (ICES)",
+  "cli_entrypoint": "proofpoint_ices.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "host",
+        "label": "Proofpoint Portal host",
+        "description": "Full API host, same as your Proofpoint Portal URL — e.g. yourcompany.tessian-platform.com (EU) or yourcompany.tessian-app.com (US). No scheme or path.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "api_token",
+        "label": "API token",
+        "description": "Proofpoint API token, generated in the Proofpoint Portal under Integrations -> Security Integrations -> Proofpoint API. Injected server-side as the Authorization header.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{host}}",
+      "headers": [
+        {
+          "name": "Authorization",
+          "template": "API-Token {{secret}}",
+          "secret_field": "api_token"
+        }
+      ]
+    }
+  }
+}

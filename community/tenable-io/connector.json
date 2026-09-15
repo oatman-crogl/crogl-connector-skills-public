@@ -1,0 +1,37 @@
+{
+  "display_name": "Tenable Vulnerability Management",
+  "cli_entrypoint": "tenable_io.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "access_key",
+        "label": "API access key",
+        "description": "Tenable Vulnerability Management API access key, from My Account -> API Keys (cloud.tenable.com). Generated as a pair with the secret key below; each account has only one active pair at a time -- regenerating invalidates the old pair. Sent inline (not encrypted at rest) as part of the X-ApiKeys header value, since Tenable requires both keys in one header and this binding can only encrypt one field per header; the secret key below carries the actual authenticating secret.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "secret_key",
+        "label": "API secret key",
+        "description": "Tenable Vulnerability Management API secret key, from the same My Account -> API Keys pair as the access key. Tenable shows this value only once, at generation time.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://cloud.tenable.com",
+      "headers": [
+        {
+          "name": "X-ApiKeys",
+          "template": "accessKey={{access_key}}; secretKey={{secret}};",
+          "secret_field": "secret_key"
+        }
+      ]
+    },
+    "probe": {
+      "path": "/api/v3/access-control/permissions/users/me",
+      "method": "GET"
+    }
+  }
+}

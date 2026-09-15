@@ -1,0 +1,112 @@
+= Cisco XDR Incidents & Investigations Connector -- Credential Provisioning Guide
+:revnumber: 0.1.0
+:revdate: 2026-09-09
+:toc:
+:title-page:
+:imagesdir: ../assets
+:title-logo-image: image:crogl-logo.png[pdfwidth=6in,align=center]
+:pdf-theme: {docdir}/../assets/pdf-theme.yml
+
+== Overview
+
+The Crogl Cisco XDR Incidents & Investigations connector reads incident and investigation data -- search, detail hydration, observables, entities, verdicts, events, and MITRE mapping -- from a customer's Cisco XDR tenant, via the Incidents & Investigations (Conure v2) API. Authentication is an **API Client** (a Client ID + Client Password pair), which Crogl exchanges server-side for a short-lived OAuth2 bearer token via the `client_credentials` grant. There is no separate app registration; the API Client itself is the credential object, created directly in the Cisco XDR console.
+
+Creating an API Client requires the **Administrator** role in Cisco XDR. If you're an FDE walking a customer through this live, expect their Cisco XDR administrator to drive the console while you confirm the resulting values.
+
+[IMPORTANT]
+====
+This connector needs **two** host values, not one -- your tenant's Cisco XDR **region** (US, EU, or APJC) determines both, but Cisco's own hostname convention for the two hosts is inconsistent (the default/US token host carries no region prefix, while the API host always does). See <<Determining your tenant's region>> and <<Mapping values into Crogl>> below. Getting the region wrong produces a 401/403 that looks identical to a bad credential -- confirm the region first.
+====
+
+== Determining your tenant's region
+
+Cisco XDR is deployed in three regions, each with its own set of API hosts: **US** (the default), **EU**, and **APJC**. The clearest way to confirm which region a tenant is in is the domain of the Cisco XDR console's own login URL after signing in -- `xdr.us.security.cisco.com`, `xdr.eu.security.cisco.com`, or `xdr.apjc.security.cisco.com`.
+
+[NOTE]
+====
+This console-URL check was not confirmed against a live tenant while writing this guide -- it is inferred from the consistent `<service>.<region>.security.cisco.com` / `<service>.<region>.amp.cisco.com` naming pattern documented across Cisco XDR's other regional API hosts (Automation, Private Intelligence). If the customer's login URL doesn't clearly show one of the three region codes above, ask their Cisco account team to confirm the tenant's region directly rather than guessing.
+====
+
+== What kind of account to create
+
+Not a per-user account or app registration -- a Cisco XDR **API Client**, created from **Administration > API Clients** in the Cisco XDR console by a user with the Administrator role.
+
+== Permissions to grant
+
+When creating the API Client, choose client type **API Client Credentials** (the Client Credentials Grant type -- *not* **OAuth Code Client Credentials**, which is the Authorization Code Grant used when one user's client needs to act with a different user's trust; this connector never does that).
+
+[IMPORTANT]
+====
+The exact set of scopes this connector's endpoints require is **not vendor-confirmed**. The Conure API's own OpenAPI specification (fetched live from `https://conure.us.security.cisco.com/swagger.json` while building this connector) declares every operation's security requirement with an empty scope list -- it states that OAuth2 authentication is required, but not which of Cisco XDR's platform-level scopes each endpoint actually needs. Based on the scopes' own descriptions in the platform's OAuth2 configuration, grant at minimum:
+
+* **`global-intel:read`** -- "Read data from public intel. Needed to fetch global incident data and investigations."
+* **`private-intel:read`** -- "Read data from private intel. Needed to get investigation data."
+* **`event:read`** -- "Get event information for an org. Needed to get full report information."
+* **`enrich:read`** -- "Fetch Data about observables. Needed for investigations."
+* **`asset`** -- "Get Data from Device Insights. Needed during running investigations."
+
+If the customer's console groups scopes under named presets rather than individual checkboxes, look for a preset covering read-only incident/investigation/threat-intel access rather than a broader "Admin" or "AO" (automation/workflow) preset. Confirm the actual required set the first time this connector is live-tested (a 403 on a specific subcommand narrows which scope is missing -- see <<Verifying the setup>>), then fold the correction back into this guide and the connector's `SKILL.md`.
+====
+
+Do not grant write-capable scopes (for example anything under a **Casebook** or **AO**/workflow preset) -- this connector is read-only and never calls a write endpoint.
+
+There is no separate admin-consent step as in an OAuth authorization-code flow; the only gate is that the person creating the API Client must themselves hold the Administrator role.
+
+== Generating the credential
+
+Per Cisco XDR's own documentation ("API Clients", Administration section):
+
+. Sign in to the Cisco XDR console as an Administrator.
+. Navigate to **Administration > API Clients**.
+. Click **Generate API Client**.
+. Enter a **Client Name** (and, optionally, a description).
+. Choose client type **API Client Credentials** (see <<Permissions to grant>> above).
+. Select the scopes listed in <<Permissions to grant>>, either individually or via the closest-matching preset.
+. Click **Add New Client**.
+. **Copy and save the displayed Client ID and Client Password immediately** -- Cisco XDR shows the Client Password exactly once and cannot redisplay or recover it. If it's lost before you copy it, delete the client and create a new one rather than trying to retrieve the value.
+
+== Mapping values into Crogl
+
+Four values map to `community/cisco-xdr-incidents/connector.json`'s `credential_schema.fields` when creating the connector instance in Crogl:
+
+[cols="1,2,2"]
+|===
+|Crogl field |Where it came from |Notes
+
+|`api_host`
+|The Conure API host matching the tenant's region (see <<Determining your tenant's region>>)
+|Enter exactly one of `conure.us.security.cisco.com`, `conure.eu.security.cisco.com`, or `conure.apjc.security.cisco.com` -- host only, no `https://` prefix.
+
+|`token_host`
+|The OAuth2 token host matching the tenant's region
+|Enter exactly one of `visibility.amp.cisco.com` (US/default -- note: *no* region prefix), `visibility.eu.amp.cisco.com`, or `visibility.apjc.amp.cisco.com` -- host only, no `https://` prefix. This is deliberately a separate field from `api_host`; see the note at the top of this guide.
+
+|`client_id`
+|The **Client ID** value shown once at API Client creation
+|Not secret by itself, but treat it as sensitive -- it identifies the credential.
+
+|`client_secret`
+|The **Client Password** value shown once at API Client creation, alongside the Client ID
+|Treat as a password. Never paste it into chat, a ticket, or this document. Crogl sends it as part of the OAuth2 client-credentials exchange (HTTP Basic `client_id:client_password` to the token endpoint) automatically once entered -- it is never sent as a request header directly.
+|===
+
+== Verifying the setup
+
+Right after creating the connector instance in Crogl, confirm the setup:
+
+* **Success**: a query against the incident search (e.g. asking Crogl to "list open Cisco XDR incidents") returns rows, or a clean empty result if there's genuinely no matching data. An empty result is a valid, successful response, not an error.
+* **Token-mint failure (fails before ever reaching the Conure API)**: the `client_id`/`client_secret` pair is wrong, was truncated when copied, the client was deleted/regenerated since it was entered into Crogl, or `token_host` doesn't match the tenant's region. Verify the region first (see <<Determining your tenant's region>>); if that's correct, generate a new API Client (the old Client Password cannot be recovered) and re-enter both `client_id` and `client_secret`.
+* **401/403 on `query-incidents` or any detail view, with a successful token mint**: either `api_host` doesn't match the tenant's region (double-check against <<Determining your tenant's region>>), or the API Client's granted scopes don't cover that call -- see the scope caveat in <<Permissions to grant>>. A scope gap can show as 403 on some subcommands (e.g. `investigation-detail`, which needs `private-intel:read`) while others succeed (e.g. `query-incidents`, which likely only needs `global-intel:read`) -- note which specific subcommand failed rather than assuming the whole credential is broken.
+* **404 on `get-incident`/`incident-detail`/`investigation-detail`**: the id doesn't exist, or belongs to a different tenant/region than the one the connector is configured against -- not a permissions problem.
+* **429**: rate limited, not a credential problem. The Conure API's own docs reviewed for this build did not state a specific requests/second or requests/minute figure for this API family -- back off and retry rather than regenerating the client.
+
+== Reference documentation
+
+Every claim in this guide and in the connector's `SKILL.md` (endpoints, scopes, field schemas, the API Client creation procedure) was checked against these Cisco pages, or the live Conure OpenAPI spec, directly -- not recalled from training data:
+
+* link:https://developer.cisco.com/docs/cisco-xdr/introduction/[Cisco XDR APIs, Introduction] -- the API-first design principle and the list of Cisco XDR's API product families (Automation, Findings, Platforms/IROH, Incidents and Investigations, Global/Private Intelligence, Playbook).
+* link:https://developer.cisco.com/docs/cisco-xdr/incidents-and-investigations-api-guide/[Incidents and Investigations (Conure) API Docs] -- confirms the Conure v2 API name/version and points to its interactive Swagger UI and OpenAPI spec.
+* link:https://conure.us.security.cisco.com/swagger.json[Conure v2 OpenAPI spec (swagger.json)] -- the live Conure v2 OpenAPI (Swagger 2.0) specification, fetched directly and read in full to determine every endpoint path, query parameter, enum value, and response schema this connector and its `SKILL.md` document. Not linked from the docs page directly -- reached via the interactive explorer's `config.json` -> `swagger.json` chain at `https://conure.us.security.cisco.com/index.html`.
+* link:https://developer.cisco.com/docs/cisco-xdr/authentication/[Cisco XDR APIs, Authentication] -- the OAuth2 `client_credentials` grant, the token endpoint, and the HTTP Basic `client_id:client_password` exchange this connector's binding relies on.
+* link:https://developer.cisco.com/docs/cisco-xdr/getting-started/[Cisco XDR APIs, Getting Started] -- the regional base-URL table (Platform/Private Intelligence/Automation hosts for North America, Europe, and Asia Pacific/Japan/China) that this connector's `api_host`/`token_host` region split is based on.
+* link:https://docs.xdr.security.cisco.com/Content/Administration/api-clients.htm[Cisco XDR, API Clients] -- the exact console procedure (Administration > API Clients > Generate API Client) this guide's Generating the credential section is based on, including the Administrator-role requirement and the "Client Password shown once" warning.

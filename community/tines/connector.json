@@ -1,0 +1,40 @@
+{
+  "display_name": "Tines",
+  "cli_entrypoint": "tines.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "host",
+        "label": "Tines tenant host",
+        "description": "Tenant FQDN only, no scheme or path -- e.g. acme.tines.com. Crogl adds https:// and the /api/v1 paths. Self-hosted tenants use their own FQDN here.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "api_key",
+        "label": "API key",
+        "description": "Tines API key, created under Settings -> Access & security -> API keys. Injected server-side as the Authorization: Bearer header. Use a Team key (role-based access to one team) or a Service key; never a Tenant owner key, which carries full owner access. This connector exposes no write actions, so it needs no permission beyond reading stories. See https://www.tines.com/stories/docs/api/authentication/",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "skip_tls_verification",
+        "label": "Skip TLS verification",
+        "description": "Skip TLS certificate verification (for self-signed certs).",
+        "kind": "boolean"
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{host}}",
+      "skip_tls_verification_field": "skip_tls_verification",
+      "headers": [
+        {
+          "name": "Authorization",
+          "template": "Bearer {{secret}}",
+          "secret_field": "api_key"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "display_name": "Darktrace",
+  "cli_entrypoint": "darktrace.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "host",
+        "label": "Darktrace appliance host",
+        "description": "Darktrace appliance hostname or IP address, without https:// or a path.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "public_token",
+        "label": "Darktrace public token",
+        "description": "Public token from the Darktrace API token pair.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "private_token",
+        "label": "Darktrace private token",
+        "description": "Private token from the Darktrace API token pair. Darktrace displays it only when the pair is created.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "skip_tls_verification",
+        "label": "Skip TLS verification",
+        "description": "Skip TLS certificate verification (for self-signed certs).",
+        "kind": "boolean"
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{host}}",
+      "skip_tls_verification_field": "skip_tls_verification",
+      "auth_provider": {
+        "provider": "darktrace_hmac",
+        "secret_fields": {
+          "public_token": "public_token",
+          "private_token": "private_token"
+        }
+      }
+    },
+    "probe": {
+      "path": "/status?fast=true&includechildren=false",
+      "method": "GET"
+    }
+  }
+}

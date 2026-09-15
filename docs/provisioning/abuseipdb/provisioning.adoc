@@ -1,0 +1,58 @@
+= AbuseIPDB Connector -- Credential Provisioning Guide
+:revnumber: 0.1.0
+:revdate: 2026-07-16
+:toc:
+:title-page:
+:imagesdir: ../assets
+:title-logo-image: image:crogl-logo.png[pdfwidth=6in,align=center]
+:pdf-theme: {docdir}/../assets/pdf-theme.yml
+
+== Overview
+
+The Crogl AbuseIPDB connector looks up IP reputation records from AbuseIPDB's `/check` endpoint using a single static API key, sent as the `Key` header on every call. There is no app registration and no OAuth flow -- one key, generated once from the customer's own AbuseIPDB account, covers the connector's only operation.
+
+Any AbuseIPDB account holder can generate their own key -- there is no separate admin role gate the way there is for some other connectors in this repo. Whoever owns (or is willing to use) the AbuseIPDB account can do this themselves in a couple of minutes.
+
+[NOTE]
+====
+AbuseIPDB's free tier works with this connector, but some response fields and daily request limits are gated by subscription level. `abuseConfidenceScore` and country filtering are called out in AbuseIPDB's own API docs as subscriber-only features, and daily request limits on the `/check` endpoint range from 1,000/day (Standard/free) up to 50,000/day (Premium Subscription). If lookups return thinner records than `community/abuseipdb/SKILL.md` describes, check the account's subscription tier before assuming something is broken.
+====
+
+== What kind of account to create
+
+There is no app registration or service-principal equivalent -- create (or reuse) a regular https://www.abuseipdb.com[AbuseIPDB account]. Any account tier works; higher tiers unlock more daily requests and additional response fields (see the note above).
+
+== Permissions to grant
+
+AbuseIPDB's API keys don't have a scope/permission picker -- there is no separate consent step, and no permission type to choose. A generated key can call every endpoint the account's subscription tier allows.
+
+== Generating the credential
+
+This flow is documented directly in AbuseIPDB's own public API docs (`docs.abuseipdb.com`), not behind a login wall, so the steps below are corroborated by AbuseIPDB's own docs plus a third-party integration walkthrough -- but neither is a first-hand click-through against a live account, so treat the exact button labels as best-guess until confirmed.
+
+. Sign in to the AbuseIPDB account dashboard at https://www.abuseipdb.com/account/api.
+. Select *Create Key*.
+. Enter a descriptive name (e.g. `crogl-connector`) and select *Create*.
+. **Copy the key value immediately.** Generating a new key does not necessarily invalidate an old one on every plan, but treat each key as sensitive and unique to this integration regardless.
+
+== Mapping values into Crogl
+
+One value from the step above maps to `community/abuseipdb/connector.json`'s `credential_schema.fields` when creating the connector instance in Crogl:
+
+[cols="1,2,2"]
+|===
+|Crogl field |Where it came from |Notes
+
+|`api_key`
+|AbuseIPDB account dashboard > API > the generated key value
+|Treat as a password. Never paste it into chat, a ticket, or this document. Crogl sends it as the `Key` header automatically once entered.
+|===
+
+== Verifying the setup
+
+Before handing the credential to Crogl, or right after creating the connector instance, confirm the setup is correct:
+
+* **In Crogl**: run a lookup against the connector (e.g. `abuseipdb.py lookup --value 8.8.8.8`) and confirm an `HTTP 200` response with a JSON record back.
+* **If you get `401`/`403`**: the key value is wrong, was truncated when copied, or has been revoked/regenerated since -- regenerate a new key in the AbuseIPDB account dashboard and re-enter it.
+* **If fields like `abuseConfidenceScore` are missing or the record looks thinner than expected**: check the account's subscription tier rather than assuming the credential is broken -- see the subscriber-feature note above.
+* **Zero prior reports on a clean IP is expected** -- an empty `reports` array is a real, correct result, not an error.

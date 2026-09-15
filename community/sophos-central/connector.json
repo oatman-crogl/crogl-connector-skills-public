@@ -1,0 +1,55 @@
+{
+  "display_name": "Sophos Central (Fusion)",
+  "cli_entrypoint": "sophos_central.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "client_id",
+        "label": "Client ID",
+        "description": "Sophos Central API credential client ID (Global Settings → API Credentials Management).",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "client_secret",
+        "label": "Client secret",
+        "description": "Sophos Central API credential client secret.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "api_host",
+        "label": "Data-region API host",
+        "description": "Tenant data-region host, no scheme (e.g. api-us01.central.sophos.com). Get it from GET https://api.central.sophos.com/whoami/v1 (apiHosts.dataRegion). See SKILL.md.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "tenant_id",
+        "label": "Tenant ID",
+        "description": "Tenant UUID from whoami (id). Sent as the X-Tenant-ID header on every call; stored securely.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{api_host}}",
+      "oauth2": {
+        "token_url": "https://id.sophos.com/api/v2/oauth2/token",
+        "client_id": "{{client_id}}",
+        "client_secret_field": "client_secret",
+        "scopes": "token",
+        "client_auth_method": "body"
+      },
+      "headers": [
+        {
+          "name": "X-Tenant-ID",
+          "template": "{{secret}}",
+          "secret_field": "tenant_id"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,101 @@
+= Splunk Enterprise Security Connector -- Credential Provisioning Guide
+:revnumber: 0.1.0
+:revdate: 2026-07-20
+:toc:
+:title-page:
+:imagesdir: ../assets
+:title-logo-image: image:crogl-logo.png[pdfwidth=6in,align=center]
+:pdf-theme: {docdir}/../assets/pdf-theme.yml
+
+== Overview
+
+The Crogl Splunk Enterprise Security connector reads investigations, findings, notes, risk scores, and asset/identity records through ES's Mission Control API using a single **Splunk authentication token**, sent as the `Authorization: Bearer` header on every call. There is no OAuth flow and no app registration -- one token, generated once, covers every endpoint this connector uses, gated by ordinary Splunk role capabilities.
+
+Generating that token requires **Splunk platform admin access** (the ability to reach *Settings* on the Splunk instance or search head that runs Enterprise Security -- a Splunk platform role, not a Crogl role). If you're an FDE walking a customer through this live, expect their Splunk administrator to drive the console while you confirm the resulting values.
+
+[IMPORTANT]
+====
+The menu paths below are reconstructed from Splunk's official Enterprise Security 8.3 API reference and Splunk's general token-authentication documentation, not confirmed against a live console while writing this guide. Splunk's Settings UI has also shifted labels between major platform versions. If any label or path below doesn't match what the customer sees, trust the live console over this document and update this file afterward. Steps that could not be confirmed are marked *(verify against the customer's console)*.
+====
+
+[NOTE]
+====
+This connector only covers Enterprise Security's Mission Control API (investigations, findings, notes, risk scores, assets, identities). It does not run raw SPL / core index search -- if the customer also wants that, it is a separate connector and a separate credential conversation.
+====
+
+== What kind of account to create
+
+Splunk's token model is not a dedicated app registration; it is a **platform authentication token** issued to an existing Splunk user and scoped by that user's assigned **role(s)**. Rather than reusing a real analyst's personal login, create a dedicated service account user for this connector (e.g. `svc-crogl-es`) and issue the token against that account -- this keeps the token's access auditable and independent of any one person's account lifecycle.
+
+[IMPORTANT]
+====
+Token authentication itself may need to be turned on before any token can be generated. Under *(verify against the customer's console)* **Settings > Tokens > Token Settings**, confirm **Enable Token Authentication** is checked. Some Splunk Enterprise versions ship this off by default; if it's off, no token this guide generates will work until an admin enables it.
+====
+
+== Permissions to grant
+
+Create a dedicated Splunk role (Settings > Roles > New Role, or *(verify against the customer's console)* the equivalent Splunk Cloud self-service admin page) and grant it the specific ES Mission Control capabilities the connector needs -- not a broad built-in role like `admin` or `sc_admin`:
+
+[cols="1,3"]
+|===
+|Capability |Needed for
+
+|`mc_investigation_read`
+|`search-investigations`, `get-investigation`, `get-investigation-notes`, `search-findings`, `get-finding` -- investigations, findings, and notes all read through this single capability.
+
+|`mc_risk_score_write`
+|`get-risk-scores`. **This is not a typo** -- Splunk's own API reference documents the risk-score *read* endpoint as gated by a capability literally named `_write`. Grant it even though this connector only reads risk scores.
+
+|`mc_assets_read`
+|`get-asset`.
+
+|`mc_identity_read`
+|`get-identity`.
+|===
+
+Splunk's built-in `admin_all_objects` capability is a documented blanket alternative to all four above, but grant the narrower set unless the customer specifically wants to reuse an existing admin-equivalent role.
+
+There is no separate admin-consent or approval step as in an OAuth flow; the only gate is that whoever creates the role and token must have the Splunk admin rights to do so.
+
+== Generating the credential
+
+*(Menu paths per Splunk's general documentation -- verify against the customer's console.)*
+
+. Sign in to the Splunk instance (or search head) running Enterprise Security as an administrator.
+. Create the dedicated role from <<Permissions to grant>>, if it doesn't already exist: **Settings > Roles > New Role**.
+. Create (or reuse) a service-account user and assign it that role: **Settings > Users > New User** (or edit an existing user's roles).
+. Confirm token authentication is enabled: **Settings > Tokens > Token Settings**.
+. Generate the token: **Settings > Tokens > New Token**, select the service-account user, set an expiration (or no expiration, per the customer's security policy), and create it.
+. **Copy the generated token string immediately.** Splunk shows it once; if it's lost, revoke it and generate a new one rather than trying to recover the value.
+
+You also need the **stack management host and port**. This is the same host used for `splunkd` management-port access -- **not** the Splunk Web port (`8000`, or `443` behind a reverse proxy) that an analyst uses in a browser. The management port defaults to `8089` for both self-managed Splunk Enterprise and Splunk Cloud; confirm with the customer's Splunk admin if it has been customized or is only reachable through a specific network path (VPN, bastion, etc.).
+
+== Mapping values into Crogl
+
+Two values map to `community/splunk-enterprise-security/connector.json`'s `credential_schema.fields` when creating the connector instance in Crogl:
+
+[cols="1,2,2"]
+|===
+|Crogl field |Where it came from |Notes
+
+|`stack`
+|The Splunk management host and port
+|No `+https://+` prefix -- just `host:port`, e.g. `splunk.example.com:8089` or `stack123.splunkcloud.com:8089`. Crogl builds the API base URL from this. Confirm this is the *management* port, not the Splunk Web port -- the two are commonly different and pointing at Splunk Web will not reach this API.
+
+|`auth_token`
+|Settings > Tokens > the generated token string
+|Treat as a password. Never paste it into chat, a ticket, or this document. Crogl sends it as `Authorization: Bearer <token>` automatically once entered.
+|===
+
+If the Splunk instance presents a self-signed or internally-issued certificate (common on self-managed Splunk Enterprise), enable **Skip TLS verification** on the connector when creating it in Crogl; otherwise the connection fails with a TLS handshake error before any request is sent.
+
+== Verifying the setup
+
+Right after creating the connector instance in Crogl, confirm the setup:
+
+* **Success**: a simple investigation or finding listing (e.g. asking Crogl to "show new investigations") returns `HTTP 200` with rows. An empty result on a filtered query is a valid, successful empty response, not an error.
+* **`401`**: the token value is wrong, was truncated when copied, has expired, or token authentication is not enabled on the instance -- regenerate the token (and confirm Token Settings) and re-enter the value.
+* **`403`**: the token authenticated, but the assigned role is **missing the specific capability** for that endpoint (see <<Permissions to grant>>) -- this is the most common "right credential, wrong permission" case. If the failing call is `get-risk-scores`, check specifically for `mc_risk_score_write` before assuming the role is otherwise correct.
+* **`404`**: usually the `stack` value points at the wrong port (Splunk Web instead of the management port) or the wrong host entirely.
+* **TLS handshake / certificate error before any HTTP status**: the instance uses a self-signed or internal-CA certificate and *Skip TLS verification* is not enabled on the connector -- enable it and retry.
+* **A known finding's `get-finding` call returns 404 when the investigation/finding clearly still exists**: this is very likely the connector's default lookback window, not a permissions or credential problem -- see `SKILL.md`'s Time-window traps section before escalating as a setup issue.

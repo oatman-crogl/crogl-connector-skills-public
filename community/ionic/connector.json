@@ -1,0 +1,159 @@
+{
+  "display_name": "Ionic Data Platform",
+  "cli_entrypoint": "ionic.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "host",
+        "label": "Ionic server host",
+        "description": "Host or hostname for the Ionic SQL query engine service.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "port",
+        "label": "Ionic server port",
+        "description": "Port for Ionic SQL query service (default 443).",
+        "kind": "integer",
+        "required": false
+      },
+      {
+        "key": "auth_realm",
+        "label": "Authentication realm",
+        "description": "Authentication realm name for OAuth2/Keycloak (default 'ionic').",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "catalog",
+        "label": "Default catalog",
+        "description": "Default catalog name for SQL queries (default 'ionic').",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "schema",
+        "label": "Default schema",
+        "description": "Default schema name for SQL queries (default 'default').",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "auth_url",
+        "label": "OAuth2 authentication URL",
+        "description": "OAuth2 token endpoint URL for acquiring bearer tokens.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "auth_flow",
+        "label": "OAuth2 authentication flow",
+        "description": "Authentication flow to use with OAuth2 (SERVICE_ACCOUNT, DIRECT, EXCHANGE, IMPERSONATION, DEVICE; default SERVICE_ACCOUNT).",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "client_id",
+        "label": "Client ID",
+        "description": "OAuth2 client application ID.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "client_secret",
+        "label": "Client secret",
+        "description": "OAuth2 client application secret.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "username",
+        "label": "Username",
+        "description": "Username for direct user or impersonation authentication flows.",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "password",
+        "label": "Password",
+        "description": "Password for direct user authentication flows.",
+        "kind": "string",
+        "secret": true,
+        "required": false
+      },
+      {
+        "key": "session_username",
+        "label": "Session username",
+        "description": "Session user identity for query execution context.",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "ssl_verification",
+        "label": "SSL verification mode",
+        "description": "SSL certificate verification mode (FULL, CA, NONE; default FULL).",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "ca_bundle",
+        "label": "CA bundle path",
+        "description": "Path to custom CA certificate bundle.",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "certfile",
+        "label": "Client certificate path",
+        "description": "Path to client certificate file.",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "keyfile",
+        "label": "Client key path",
+        "description": "Path to client private key file.",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "keyfile_pw",
+        "label": "Client key password",
+        "description": "Password for client private key file.",
+        "kind": "string",
+        "secret": true,
+        "required": false
+      },
+      {
+        "key": "source",
+        "label": "Client source",
+        "description": "Client source identifier sent in session headers (default 'crogl').",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "client_tags",
+        "label": "Client tags",
+        "description": "Comma-separated or JSON list of client tag strings associated with query sessions.",
+        "kind": "string",
+        "required": false
+      },
+      {
+        "key": "session_properties",
+        "label": "Session properties",
+        "description": "JSON string for custom session configuration properties.",
+        "kind": "string",
+        "required": false
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{host}}:{{port}}",
+      "oauth2": {
+        "token_url": "{{auth_url}}",
+        "client_id": "{{client_id}}",
+        "client_secret_field": "client_secret"
+      }
+    }
+  }
+}

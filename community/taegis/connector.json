@@ -1,0 +1,39 @@
+{
+  "display_name": "Secureworks Taegis XDR",
+  "cli_entrypoint": "taegis.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "region_host",
+        "label": "Regional API host",
+        "description": "Taegis regional API host, no scheme (e.g. api.ctpx.secureworks.com for US1). Full region list in SKILL.md.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "client_id",
+        "label": "Client ID",
+        "description": "Taegis API client credential ID.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "client_secret",
+        "label": "Client secret",
+        "description": "Taegis API client credential secret.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{region_host}}",
+      "oauth2": {
+        "token_url": "https://{{region_host}}/auth/api/v2/auth/token",
+        "client_id": "{{client_id}}",
+        "client_secret_field": "client_secret",
+        "client_auth_method": "json"
+      }
+    }
+  }
+}

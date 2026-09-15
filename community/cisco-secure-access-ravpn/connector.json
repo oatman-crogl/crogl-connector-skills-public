@@ -1,0 +1,33 @@
+{
+  "display_name": "Cisco Secure Access RA VPN",
+  "cli_entrypoint": "cisco_secure_access_ravpn.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "api_key",
+        "label": "API key",
+        "description": "Secure Access API key (Standard, not Key Admin) created under Admin > API Keys.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "api_secret",
+        "label": "API key secret",
+        "description": "Secret shown once at API key creation time.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://api.sse.cisco.com",
+      "oauth2": {
+        "token_url": "https://api.sse.cisco.com/auth/v2/token",
+        "client_id": "{{api_key}}",
+        "client_secret_field": "api_secret",
+        "scopes": "admin.vpn:read reports.aggregations:read",
+        "client_auth_method": "basic"
+      }
+    }
+  }
+}

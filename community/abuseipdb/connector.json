@@ -1,0 +1,26 @@
+{
+  "display_name": "AbuseIPDB",
+  "cli_entrypoint": "abuseipdb.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "api_key",
+        "label": "API key",
+        "description": "AbuseIPDB API key (sent as the Key header).",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://api.abuseipdb.com/api/v2",
+      "headers": [
+        {
+          "name": "Key",
+          "template": "{{secret}}",
+          "secret_field": "api_key"
+        }
+      ]
+    }
+  }
+}

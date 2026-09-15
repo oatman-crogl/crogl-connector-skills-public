@@ -1,0 +1,86 @@
+= Darktrace Connector -- Credential Provisioning Guide
+:revnumber: 0.1.0
+:revdate: 2026-08-31
+:toc:
+:title-page:
+:imagesdir: ../assets
+:title-logo-image: image:crogl-logo.png[pdfwidth=6in,align=center]
+:pdf-theme: {docdir}/../assets/pdf-theme.yml
+
+== Overview
+
+The draft Crogl Darktrace connector requires a Darktrace appliance host and one Darktrace API token pair: a public token and a private token. Darktrace requires a per-request HMAC-SHA1 signature in addition to the token pair. This guide is based only on the supplied Darktrace API documentation and has not been verified against a live customer console. A Darktrace administrator or local Threat Visualizer administrator should perform the vendor-side steps.
+
+[IMPORTANT]
+====
+The connector remains `draft` because no Darktrace test environment is available. Crogl main now provides the server-side `darktrace_hmac` request-signing provider, and this connector declares it. Do not mark the connector field-tested until a signed request succeeds against a real instance.
+====
+
+== What kind of account to create
+
+Darktrace's documented per-user token flow uses a local user created in Threat Visualizer. API tokens are not available to users created through LDAP or SAML SSO. A global token can instead be created by a user who can modify the Threat Visualizer System Config page, but per-user tokens are preferred because their permissions are restricted to those of the associated user.
+
+== Permissions to grant
+
+For a per-user token:
+
+. In Threat Visualizer, open *Main Menu > Admin > Permissions Admin*.
+. Select the *Created Accounts* tab.
+. Locate the intended local user and choose the edit (pen) control.
+. On the *Flags* step, enable *API Access* and save.
+. Grant only the Darktrace UI permissions needed for the read-only API surfaces that will be used. The supplied documentation lists endpoint-specific requirements; for example, `/modelbreaches` requires *Unrestricted Devices* and one of *Visualizer*, *Darktrace / IDENTITY Console*, *View Models*, or *Edit Models*.
+
+Verify the exact permission names against the customer's Darktrace version. Do not grant write permissions for a read-only connector.
+
+== Generating the credential
+
+. Sign in as the local API-enabled user.
+. Open *Account Settings* from the main menu.
+. Locate *API Access* and select *New*.
+. Record the displayed public and private token values in an approved secret store. The private token is not displayed again.
+. Record the appliance hostname or IP address separately. Do not include `https://` or an API path in the host value.
+
+If using a global token instead, a user with access to System Config can open *Settings*, locate the *API Token* section, choose *New*, and securely record both displayed values. The supplied documentation recommends per-user tokens rather than global tokens when least privilege is required.
+
+== Mapping values into Crogl
+
+[cols="1,2,2"]
+||===
+||Crogl field |Where it came from |Notes
+
+||`host`
+||The Darktrace appliance hostname or IP address
+||Enter the host only; omit the scheme and path. Use the optional TLS checkbox only when the appliance certificate requires it and the exception is approved.
+
+||`public_token`
+||The public value from the Darktrace API token pair
+||Treat it as a secret and do not place it in chat, tickets, or source files.
+
+||`private_token`
+||The private value displayed when the token pair was created
+||Treat it as a high-sensitivity secret. It cannot be recovered from Darktrace after the creation screen is closed.
+
+||`skip_tls_verification`
+||A deployment decision, not a Darktrace credential
+||Leave disabled unless the appliance uses a self-signed or otherwise untrusted certificate and the exception is approved.
+||===
+
+== Verifying the setup
+
+Crogl main now provides the server-side signing integration. After creating the connector, run a small read-only request such as `GET /status?fast=true&includechildren=false` or a narrow `/modelbreaches` query. A real Darktrace test environment is still required before changing the connector status.
+
+A valid Darktrace request must include:
+
+* `DTAPI-Token` containing the public token.
+* `DTAPI-Date` containing a UTC date accepted by Darktrace and within 30 minutes of the instance system time.
+* `DTAPI-Signature` containing the HMAC-SHA1 value calculated from the exact endpoint path and query, a newline, the public token, another newline, and the same date.
+
+The host must not be included in the signed string. If query parameters are changed, the signature must be regenerated.
+
+* **HTTP 200**: the request was accepted; an empty result may still be a valid successful query.
+* **Authentication/signature rejection**: verify the public/private pair, exact path and query, matching date value, UTC clock, and the 30-minute clock tolerance.
+* **Permission failure**: the token authenticated but its associated Darktrace user lacks the permission required by the endpoint.
+* **TLS failure**: verify the host and certificate. Do not disable verification as a general workaround.
+* **HTTP 400**: correct malformed or unsupported parameters; do not retry unchanged.
+
+Do not use the credential examples printed in vendor documentation. They are examples only and must never be entered into Crogl.

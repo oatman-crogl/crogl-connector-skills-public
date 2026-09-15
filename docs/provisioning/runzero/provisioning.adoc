@@ -1,0 +1,91 @@
+= runZero Connector -- Credential Provisioning Guide
+:revnumber: 0.1.0
+:revdate: 2026-09-09
+:toc:
+:title-page:
+:imagesdir: ../assets
+:title-logo-image: image:crogl-logo.png[pdfwidth=6in,align=center]
+:pdf-theme: {docdir}/../assets/pdf-theme.yml
+
+== Overview
+
+The Crogl runZero connector reads assets, services, software, vulnerabilities, wireless networks, sites, certificates, directory users/groups, findings, tasks, and two CSV-only statistics exports using a single **Export Token** (prefixed `ET`), sent as the `Authorization: Bearer <token>` header on every call. This token type is scoped by runZero to the read-only `/api/v1.0/export` API path for one organization -- it cannot create, edit, or delete anything, so there is no elevated write permission to grant or gate.
+
+Generating that token requires access to the **Organizations** page in the runZero console with permission to edit the target organization -- a runZero console role, not a Crogl role. If you're an FDE walking a customer through this live, expect their runZero admin to drive the console while you confirm the resulting values.
+
+[IMPORTANT]
+====
+This guide is a **docs-only build**: the console navigation steps below (menu names, page layout) are reconstructed from runZero's own published support docs (`help.runzero.com`), not confirmed against a live console while writing this guide. The exact admin role name required to edit an organization and whether the token is displayed only once are not stated in runZero's docs as fetched -- both are marked *(verify against the customer's console)* below. If the console UI doesn't match what's described, trust the live console and update this file afterward.
+====
+
+== What kind of account to create
+
+runZero's model is not an app registration or a dedicated service user; it is a named **Export Token** generated directly on an existing organization's settings page. There is no separate "service account" identity -- the token itself is the credential, and it inherits no user-level permissions beyond what the Export token type structurally allows (read-only export).
+
+runZero also supports **OAuth 2.0 API Clients** (Client Credentials grant) as an alternative to static tokens, created from a **My API clients** (self-service) or **API clients** (superuser, account-wide) page. This connector uses the simpler static Export Token; OAuth API Clients are out of scope for this guide.
+
+== Permissions to grant
+
+There is no separate scope/permission picker for an Export Token the way there is for an OAuth app registration -- the token type itself *is* the permission boundary:
+
+* An Export Token can reach only endpoints under `/api/v1.0/export/*`.
+* It is read-only by construction -- there is no way to grant it write access, and no checkbox to get this wrong.
+* It is scoped to the **one organization** it was generated under. A runZero account with multiple organizations needs one Export Token per organization if this connector will query more than one.
+
+The only access decision that matters here is *who is allowed to generate the token in the first place* -- i.e. who can reach **Edit organization** for the target org in the console. *(Exact console role/permission name required for this -- e.g. whether it requires a full account Owner/Admin role or a narrower per-organization admin role -- is not stated in runZero's docs as fetched; verify against the customer's console.)*
+
+== Generating the credential
+
+*(Menu path per runZero's published support documentation -- verify against the customer's console.)*
+
+. Sign in to the runZero console (`https://console.runzero.com` for the SaaS platform, or the customer's self-hosted console URL).
+. Navigate to the **Organizations** page from the main menu.
+. Select the target organization to open its details page.
+. Select **Edit organization**.
+. Scroll to the **Export tokens** section.
+. Select the option to create a new export token, and give it a descriptive name (e.g. `crogl-connector`).
+. Create it and **copy the generated token value immediately.** *(Whether runZero displays the value only once, as most vendors do for this credential shape, is not explicitly confirmed in the docs as fetched -- treat it as one-time-display and copy it immediately regardless.)*
+
+You also need the **runZero console host**: `console.runzero.com` for the SaaS platform, or the FQDN of a self-hosted console. This is the same host an analyst points a browser at for the console UI -- no scheme, no path.
+
+If the target is a **self-hosted** runZero platform, also confirm with the customer's admin whether the console presents a certificate from a public CA or an internal/self-signed one -- this determines whether Crogl's "Skip TLS verification" setting needs to be enabled (see below).
+
+== Mapping values into Crogl
+
+Three values map to `community/runzero/connector.json`'s `credential_schema.fields` when creating the connector instance in Crogl:
+
+[cols="1,2,2"]
+|===
+|Crogl field |Where it came from |Notes
+
+|`console_host`
+|The runZero console hostname
+|No `+https://+` prefix and no path -- e.g. `console.runzero.com`, or a self-hosted console's FQDN. Crogl builds the API base URL `+https://<console_host>/api/v1.0+` for you.
+
+|`api_token`
+|Organizations -> [org] -> Edit organization -> Export tokens -> the generated token value
+|Treat as a password. Never paste it into chat, a ticket, or this document. Crogl sends it as the `Authorization: Bearer` header automatically once entered.
+
+|`skip_tls_verification`
+|N/A -- operator decision
+|Leave off (default) for the SaaS console at `console.runzero.com`. Enable only for a self-hosted console presenting a self-signed or internal-CA certificate.
+|===
+
+== Verifying the setup
+
+Right after creating the connector instance in Crogl, confirm the setup:
+
+* **Success**: a simple asset query (e.g. asking Crogl to "show me some assets") returns `HTTP 200` with asset rows, or an explicit "0 rows" response on a filtered query that legitimately matches nothing -- both are a working connector.
+* **`401`**: the token value is wrong, was truncated when copied, or was revoked/rotated in the console since -- regenerate the Export token and re-enter the value. This is the most common first-run failure and is a credential problem, not a permissions problem (Export tokens have no separate permission dimension to get wrong).
+* **`404`**: the `console_host` value is wrong, or (self-hosted only) the console isn't reachable at that host/path -- confirm the bare hostname with the customer's admin.
+* **TLS handshake / certificate verify failure before any HTTP status**: self-hosted console presenting a self-signed/internal-CA certificate and *Skip TLS verification* is not enabled -- enable it on the connector and retry. The SaaS console at `console.runzero.com` should never hit this.
+* **`429` / rate limited**: the org has exhausted its daily API quota (equal to its licensed asset count) or the per-IP short-window cap. This is not a credential or permission problem -- wait for the quota to reset (daily) or the short window to pass, and avoid re-running unchanged queries.
+* **Empty rows on a filtered query**: confirm in the runZero console itself whether the underlying condition actually exists yet (e.g. no asset matches that OS, no certificate has that CN) before assuming the connector is broken -- an empty result on a valid, narrow filter is a correct answer, not a failure.
+
+== Reference documentation
+
+* https://help.runzero.com/docs/leveraging-the-api/[Leveraging the API] -- token types, auth header, rate-limit model, `X-API-Usage-*` headers.
+* https://help.runzero.com/docs/exporting-asset-data/[Exporting asset data] -- export formats and the `search` parameter's relationship to the console's own search UI.
+* https://github.com/runZeroInc/runzero-api[runZero public API OpenAPI definition] -- authoritative endpoint paths, query parameters, and response schemas used to build this connector and guide.
+* https://help.runzero.com/docs/search-query-syntax/[Search query syntax] -- the query language shared across every resource this connector exposes.
+* https://help.runzero.com/docs/self-hosting/[Self-hosting runZero] -- self-hosted console deployment, referenced for the "operator-supplied host" / TLS guidance above.

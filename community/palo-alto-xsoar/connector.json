@@ -1,0 +1,46 @@
+{
+  "display_name": "Palo Alto Cortex XSOAR",
+  "cli_entrypoint": "palo_alto_xsoar.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "api_host",
+        "label": "Cortex XSOAR API host",
+        "description": "Tenant-specific API FQDN, no scheme or path -- e.g. api-abc123.paloaltonetworks.com. Copy it from the cURL example shown when you right-click a generated API key and select 'View Examples' in Settings -> Integrations -> API Keys.",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "key_id",
+        "label": "API Key ID",
+        "description": "The Key ID shown alongside the generated API key (sent as the x-xdr-auth-id header on every call). Not the key value itself, but stored securely since it identifies the credential.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      },
+      {
+        "key": "api_key",
+        "label": "API key (Standard)",
+        "description": "Standard-type Cortex XSOAR 8 API key, generated under Settings -> Integrations -> API Keys. Sent as the raw Authorization header value. This connector uses Standard keys only -- Advanced keys require a per-request computed HMAC signature that a static header binding cannot produce; see SKILL.md.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{api_host}}/xsoar/public/v1",
+      "headers": [
+        {
+          "name": "x-xdr-auth-id",
+          "template": "{{secret}}",
+          "secret_field": "key_id"
+        },
+        {
+          "name": "Authorization",
+          "template": "{{secret}}",
+          "secret_field": "api_key"
+        }
+      ]
+    }
+  }
+}

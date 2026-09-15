@@ -1,0 +1,46 @@
+{
+  "display_name": "ServiceNow ChatOps",
+  "cli_entrypoint": "servicenow_chatops.py",
+  "credential_schema": {
+    "fields": [
+      {
+        "key": "host",
+        "label": "ServiceNow instance host",
+        "description": "ServiceNow instance hostname, e.g. mycompany.service-now.com. No scheme (Crogl adds https://).",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "target_table",
+        "label": "Target table",
+        "description": "The ServiceNow table this connector creates and reads verification-request records in (e.g. interaction, sc_task, or a custom table). This MUST be a table your ServiceNow ChatOps/Now Actions notification flow is already configured to watch and deliver to Slack/Microsoft Teams -- confirm the exact table with your ServiceNow admin before setting this; this connector does not configure that delivery flow, it only writes records to it. One connector instance targets exactly one table. The table must have an 'assigned_to' reference field (standard on Task-derived tables such as incident, sc_task, interaction; not guaranteed on a fully custom table).",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "client_id",
+        "label": "OAuth Client ID",
+        "description": "Client ID of a ServiceNow OAuth Application Registry entry configured for the Client Credentials grant type (System OAuth > Application Registry).",
+        "kind": "string",
+        "required": true
+      },
+      {
+        "key": "client_secret",
+        "label": "OAuth Client Secret",
+        "description": "Client Secret for the same OAuth Application Registry entry.",
+        "kind": "string",
+        "secret": true,
+        "required": true
+      }
+    ],
+    "binding": {
+      "base_url": "https://{{host}}/api/now/table/{{target_table}}",
+      "oauth2": {
+        "token_url": "https://{{host}}/oauth_token.do",
+        "client_id": "{{client_id}}",
+        "client_secret_field": "client_secret",
+        "client_auth_method": "body"
+      }
+    }
+  }
+}

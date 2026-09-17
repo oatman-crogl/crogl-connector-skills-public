@@ -1,36 +1,38 @@
+/* Palette matched to crogl.com (dark, amber accent). See vault memory
+   "palette_crogl_com" for the source values if this needs revisiting. */
 :root {
-  --bg: #f7f7f8;
+  --bg: #f9f9f9;
   --surface: #ffffff;
-  --text: #1a1d21;
-  --text-muted: #5b6270;
-  --border: #e3e5e8;
-  --accent: #2f6fed;
-  --accent-contrast: #ffffff;
-  --pill-bg: #eef2ff;
-  --pill-text: #3949ab;
-  --notice-warn-bg: #fff4e5;
-  --notice-warn-text: #7a4a00;
-  --notice-info-bg: #eef2ff;
-  --notice-info-text: #2b3a67;
-  --code-bg: #f0f1f3;
+  --text: #101010;
+  --text-muted: #6b6b6b;
+  --border: #e5e7eb;
+  --accent: #cc8a00;
+  --accent-contrast: #101010;
+  --pill-bg: #f0e9d8;
+  --pill-text: #6b4b00;
+  --notice-info-bg: #fdf3e0;
+  --notice-info-text: #6b4b00;
+  --code-bg: #f0f0f0;
+  --danger: #c0392b;
+  --success: #3e8e5a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14161a;
-    --surface: #1c1f24;
-    --text: #edeef0;
-    --text-muted: #9aa1ac;
-    --border: #2b2f36;
-    --accent: #6d9bff;
-    --accent-contrast: #0b1220;
-    --pill-bg: #232a44;
-    --pill-text: #b9c6ff;
-    --notice-warn-bg: #3a2c12;
-    --notice-warn-text: #f0c988;
-    --notice-info-bg: #1c2440;
-    --notice-info-text: #c3ccff;
-    --code-bg: #22262c;
+    --bg: #050505;
+    --surface: #101010;
+    --text: #f9f9f9;
+    --text-muted: #929292;
+    --border: #2d2d34;
+    --accent: #f0b323;
+    --accent-contrast: #050505;
+    --pill-bg: #2d2d34;
+    --pill-text: #f0b323;
+    --notice-info-bg: #1a1a1a;
+    --notice-info-text: #f0b323;
+    --code-bg: #181818;
+    --danger: #c0392b;
+    --success: #3e8e5a;
   }
 }
 
@@ -111,6 +113,7 @@ a { color: var(--accent); }
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-contrast);
+  font-weight: 600;
 }
 
 .search {
@@ -143,14 +146,55 @@ a { color: var(--accent); }
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
+/* Without this, the .card display:block rule above (an author style)
+   outranks the browser's default [hidden]{display:none} (a user-agent
+   style) in the cascade, so toggling the hidden property from JS has no
+   visible effect. Needed for both search and the kind filter to work. */
+.card[hidden] {
+  display: none;
+}
+
 .card:hover {
   border-color: var(--accent);
   transform: translateY(-1px);
 }
 
-.card h3 {
-  margin: 0 0 6px;
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.card-top h3 {
+  margin: 0;
   font-size: 1.05rem;
+}
+
+.logo {
+  height: 20px;
+  width: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.logo-detail {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.tag-pill {
+  display: inline-block;
+  background: var(--pill-bg);
+  color: var(--pill-text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 10px;
 }
 
 .card-desc {
@@ -190,8 +234,15 @@ a { color: var(--accent); }
   color: var(--text-muted);
 }
 
-.detail h1 {
+.detail-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin: 6px 0 12px;
+}
+
+.detail h1 {
+  margin: 0;
   font-size: 1.8rem;
 }
 
@@ -225,11 +276,6 @@ a { color: var(--accent); }
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 0.9rem;
-}
-
-.notice-warn {
-  background: var(--notice-warn-bg);
-  color: var(--notice-warn-text);
 }
 
 .notice-info {

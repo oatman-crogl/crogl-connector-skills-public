@@ -14,13 +14,83 @@ import base64
 import html
 import json
 import re
+import shutil
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCS = REPO_ROOT / "docs"
+LOGO_SRC_DIR = REPO_ROOT / "assets" / "logos"
 RAW_BASE = "https://github.com/oatman-crogl/crogl-connector-skills-public/raw/main"
 
 MARKED_CDN = "https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"
+
+# Hand-curated -- neither tags nor a logo are modeled anywhere in
+# connector.json/SKILL.md, so this is the source of truth for both.
+# Keys not listed here simply render with no tags / no logo.
+TAGS = {
+    "abuseipdb": ["Threat Intelligence"],
+    "bigquery": ["Data Warehouse", "Querying"],
+    "cisco-secure-access-ravpn": ["Network Security", "VPN"],
+    "cisco-xdr-incidents": ["XDR", "Incident Response"],
+    "cortex-xdr": ["XDR", "Endpoint Security"],
+    "darktrace": ["Network Detection", "AI Security"],
+    "defender": ["Endpoint Security", "EDR"],
+    "intune": ["Endpoint Management", "MDM"],
+    "ionic": ["Data Platform", "Querying"],
+    "jira-datacenter": ["Ticketing", "ITSM"],
+    "pagerduty": ["Incident Response", "On-Call"],
+    "palo-alto-xsoar": ["SOAR", "Incident Response"],
+    "proofpoint-ices": ["Email Security"],
+    "purview-dlp": ["Data Loss Prevention", "Compliance"],
+    "qradar": ["SIEM"],
+    "recordedfuture": ["Threat Intelligence"],
+    "runzero": ["Asset Discovery", "Attack Surface"],
+    "servicenow-chatops": ["ITSM", "ChatOps"],
+    "solarwinds-service-desk": ["Ticketing", "ITSM"],
+    "sophos-central": ["Endpoint Security", "EDR"],
+    "splunk-enterprise-security": ["SIEM"],
+    "taegis": ["XDR"],
+    "tanium": ["Endpoint Management", "Vulnerability Management"],
+    "tenable-io": ["Vulnerability Management"],
+    "tines": ["SOAR", "Automation"],
+    "windows-update-reports": ["Patch Management"],
+    "cb-edr-reference": ["Endpoint Security", "EDR"],
+    "cortex-xdr-reference": ["XDR"],
+    "github-reference": ["DevOps", "Source Control"],
+    "wiz-reference": ["CNAPP", "Cloud Security"],
+}
+
+# Maps a key to a filename under assets/logos/ (source, committed -- this
+# is the maintained bank, mirrored in from the private repo's
+# connector-coverage/logos/; add a file there and a line here for a new
+# connector). The generator copies only the ones actually referenced here
+# into docs/assets/logos/ each run.
+LOGOS = {
+    "abuseipdb": "abuseipdb.svg",
+    "bigquery": "bigquery.svg",
+    "cisco-secure-access-ravpn": "cisco.svg",
+    "cisco-xdr-incidents": "cisco.svg",
+    "cortex-xdr": "paloalto.png",
+    "cortex-xdr-reference": "paloalto.png",
+    "defender": "defender.svg",
+    "intune": "intune.svg",
+    "jira-datacenter": "jira-datacenter.png",
+    "palo-alto-xsoar": "paloalto.png",
+    "proofpoint-ices": "proofpoint.png",
+    "purview-dlp": "purview.svg",
+    "qradar": "qradar.svg",
+    "recordedfuture": "recordedfuture.png",
+    "servicenow-chatops": "servicenow.png",
+    "solarwinds-service-desk": "solarwinds.png",
+    "sophos-central": "sophos.png",
+    "splunk-enterprise-security": "splunk-es.png",
+    "tanium": "tanium.svg",
+    "tines": "tines.png",
+    "windows-update-reports": "windows-update.svg",
+    "cb-edr-reference": "carbonblack.png",
+    "github-reference": "github.svg",
+    "wiz-reference": "wiz.svg",
+}
 
 
 def h1_title(body: str, fallback_key: str) -> str:
@@ -122,10 +192,28 @@ def badge_img(status: str, status_badge_url: str, version: str) -> str:
     )
 
 
+def tags_pill_html(key: str) -> str:
+    tags = TAGS.get(key)
+    if not tags:
+        return ""
+    return f'<div class="tag-pill">{html.escape(", ".join(tags).upper())}</div>\n'
+
+
+def logo_img_html(key: str, css_class: str = "logo") -> str:
+    filename = LOGOS.get(key)
+    if not filename:
+        return ""
+    return f'<img class="{css_class}" src="{"../" if css_class == "logo-detail" else ""}assets/logos/{filename}" alt="">'
+
+
 def render_card(entry) -> str:
     href = f"{entry['kind']}/{entry['key']}.html"
     return f"""<a class="card" href="{href}" data-name="{html.escape(entry['key'])}" data-status="{html.escape(entry['status'])}" data-kind="{entry['kind']}">
-  <h3>{html.escape(entry['name_display'])}</h3>
+  {tags_pill_html(entry['key'])}
+  <div class="card-top">
+    {logo_img_html(entry['key'])}
+    <h3>{html.escape(entry['name_display'])}</h3>
+  </div>
   <p class="card-desc">{html.escape(entry['blurb'])}</p>
   <div class="card-meta">{badge_img(entry['status'], entry['status_badge_url'], entry['version'])}</div>
 </a>
@@ -153,27 +241,28 @@ def render_detail_page(entry, css_path: str) -> str:
 </table>
 """
     provisioning_html = ""
-    if entry.get("provisioning_pdf_rel"):
-        provisioning_html = f'<p><a class="btn btn-secondary" href="{RAW_BASE}/{entry["provisioning_pdf_rel"]}">Credential setup guide (PDF)</a></p>\n'
+    if entry.get("provisioning_pdf_name"):
+        provisioning_html = (
+            f'<p><a class="btn btn-secondary" href="../assets/provisioning/{entry["provisioning_pdf_name"]}" '
+            f'download="{entry["provisioning_pdf_name"]}">Credential setup guide (PDF)</a></p>\n'
+        )
 
-    superseded_note = ""
-    if entry["status"] == "superseded" and entry.get("note"):
-        superseded_note = f'<p class="notice notice-warn">{html.escape(entry["note"])}</p>\n'
-
-    if entry.get("download_url"):
-        download_html = f'<p><a class="btn btn-primary" href="{entry["download_url"]}">Download {entry["kind_label"]}</a></p>\n'
-    else:
-        download_html = '<p class="notice notice-info">No distributable package — superseded, not importable on its own.</p>\n'
+    download_html = f'<p><a class="btn btn-primary" href="{entry["download_url"]}">Download {entry["kind_label"]}</a></p>\n'
 
     md_b64 = md_embed(entry["body"])
+    tags_html = tags_pill_html(entry["key"])
+    logo_html = logo_img_html(entry["key"], css_class="logo-detail")
 
     return PAGE_HEAD.format(title=f"{entry['name_display']} — Crogl Connector Library", css_path=css_path) + NAV.format(root="../") + f"""
 <main class="detail">
   <p class="back"><a href="../index.html">&larr; All connectors</a></p>
-  <h1>{html.escape(entry['name_display'])}</h1>
+  {tags_html}
+  <div class="detail-top">
+    {logo_html}
+    <h1>{html.escape(entry['name_display'])}</h1>
+  </div>
   <div class="badges">{badge_img(entry['status'], entry['status_badge_url'], entry['version'])}</div>
   <p class="blurb">{html.escape(entry['blurb'])}</p>
-  {superseded_note}
   {download_html}
   {provisioning_html}
   {fields_html}
@@ -276,7 +365,8 @@ def main():
             "fields": fields,
             "body": body,
             "download_url": f"{RAW_BASE}/{dist_path}" if dist_path else None,
-            "provisioning_pdf_rel": f"docs/provisioning/{key}/provisioning.pdf" if prov_pdf.exists() else None,
+            "provisioning_pdf_src": prov_pdf if prov_pdf.exists() else None,
+            "provisioning_pdf_name": f"{key}-provisioning.pdf" if prov_pdf.exists() else None,
         })
 
     for row in ref_rows:
@@ -284,7 +374,6 @@ def main():
         status, status_url = status_from_cell(row["Status"])
         skill_path = REPO_ROOT / "references" / key / "SKILL.md"
         fm, body = parse_frontmatter(skill_path.read_text(encoding="utf-8"))
-        note = row["Paired connector type"].strip("*") if row["Paired connector type"].startswith("**") else None
         dist_path = dist_path_from_cell(row["Distributable"])
         entries.append({
             "kind": "reference",
@@ -298,17 +387,39 @@ def main():
             "fields": [],
             "body": body,
             "download_url": f"{RAW_BASE}/{dist_path}" if dist_path else None,
-            "provisioning_pdf_rel": None,
-            "note": note,
+            "provisioning_pdf_src": None,
+            "provisioning_pdf_name": None,
         })
 
-    (DOCS / "connector").mkdir(parents=True, exist_ok=True)
-    (DOCS / "reference").mkdir(parents=True, exist_ok=True)
-    (DOCS / "assets").mkdir(parents=True, exist_ok=True)
+    # Superseded artifacts (a reference skill replaced by a full community
+    # connector) are excluded from the site entirely -- no card, no page.
+    entries = [e for e in entries if e["status"] != "superseded"]
+    entries.sort(key=lambda e: e["name_display"].lower())
+
+    # Fully rebuild generated subtrees each run -- otherwise a removed/renamed
+    # connector (e.g. one that becomes superseded) leaves a stale orphaned
+    # page behind instead of disappearing from the site.
+    for sub in ("connector", "reference", "assets/provisioning", "assets/logos"):
+        d = DOCS / sub
+        if d.exists():
+            shutil.rmtree(d)
+        d.mkdir(parents=True, exist_ok=True)
 
     for entry in entries:
         out = DOCS / entry["kind"] / f"{entry['key']}.html"
         out.write_text(render_detail_page(entry, css_path="../assets/styles.css"), encoding="utf-8")
+        if entry["provisioning_pdf_src"]:
+            dest = DOCS / "assets" / "provisioning" / entry["provisioning_pdf_name"]
+            dest.write_bytes(entry["provisioning_pdf_src"].read_bytes())
+
+    # Copy only the logos actually referenced by a current entry into the
+    # generated docs/assets/logos/ -- keeps the served site lean even
+    # though the source bank (assets/logos/) may hold more than are used.
+    used_logos = {LOGOS[e["key"]] for e in entries if e["key"] in LOGOS}
+    for filename in used_logos:
+        src = LOGO_SRC_DIR / filename
+        if src.exists():
+            shutil.copy2(src, DOCS / "assets" / "logos" / filename)
 
     cards_html = "\n".join(render_card(e) for e in entries)
     index_html = (

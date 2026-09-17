@@ -97,7 +97,12 @@ LOGOS = {
 def h1_title(body: str, fallback_key: str) -> str:
     m = re.search(r"^#\s+(.+)$", body, flags=re.MULTILINE)
     if m:
-        return m.group(1).strip()
+        title = m.group(1).strip()
+        # Reference-skill H1s carry a verbose " -- Reference / ... Cookbook"
+        # suffix (e.g. "Carbon Black EDR (on-prem) -- Reference / Ad-hoc
+        # Query Cookbook") -- drop it, the product name alone is the title.
+        title = re.split(r"\s+—\s+", title)[0]
+        return title
     return fallback_key.replace("-", " ").title()
 
 

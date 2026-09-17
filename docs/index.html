@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crogl Connector Library</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <a class="wordmark" href="index.html">Crogl Connector Library</a>
+  <span class="preview-pill">Preview</span>
+</header>
+
+<main class="index">
+  <section class="hero">
+    <h1>Crogl Connector Library</h1>
+    <p>Browse and download Crogl-compatible connectors for your SOC stack. Each connector is a self-contained, importable package &mdash; docs, credential requirements, and CLI all included.</p>
+  </section>
+  <div class="filters">
+    <button class="filter-btn active" data-filter-kind="all">All</button>
+    <button class="filter-btn" data-filter-kind="connector">Community connectors</button>
+    <button class="filter-btn" data-filter-kind="reference">Reference skills</button>
+    <input class="search" type="search" id="search" placeholder="Search connectors&hellip;">
+  </div>
+  <div class="grid" id="grid">
+<a class="card" href="connector/abuseipdb.html" data-name="abuseipdb" data-status="draft" data-kind="connector">
+  <h3>AbuseIPDB</h3>
+  <p class="card-desc">AbuseIPDB v2 reputation API</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/bigquery.html" data-name="bigquery" data-status="draft" data-kind="connector">
+  <h3>BigQuery</h3>
+  <p class="card-desc">Google BigQuery query and schema connector</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/intune.html" data-name="intune" data-status="draft" data-kind="connector">
+  <h3>Microsoft Intune</h3>
+  <p class="card-desc">Microsoft Intune (Graph `deviceManagement/managedDevices`)</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/purview-dlp.html" data-name="purview-dlp" data-status="draft" data-kind="connector">
+  <h3>Microsoft Purview DLP</h3>
+  <p class="card-desc">Microsoft Purview DLP (Graph `security/alerts_v2`, `serviceSource eq &#x27;dataLossPrevention&#x27;`)</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/solarwinds-service-desk.html" data-name="solarwinds-service-desk" data-status="draft" data-kind="connector">
+  <h3>SolarWinds Service Desk</h3>
+  <p class="card-desc">SolarWinds Service Desk / Samanage incidents API</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/defender.html" data-name="defender" data-status="draft" data-kind="connector">
+  <h3>Microsoft Defender for Endpoint</h3>
+  <p class="card-desc">Microsoft Defender for Endpoint (`api.securitycenter.microsoft.com`)</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/windows-update-reports.html" data-name="windows-update-reports" data-status="draft" data-kind="connector">
+  <h3>Windows Update for Business reports</h3>
+  <p class="card-desc">Windows Update for Business reports (Azure Monitor Log Analytics KQL query API)</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/recordedfuture.html" data-name="recordedfuture" data-status="draft" data-kind="connector">
+  <h3>Recorded Future</h3>
+  <p class="card-desc">Recorded Future read-only intelligence lookups (entities, alerts, playbook alerts, identity, links, threat actor/malware -- `api.recordedfuture.com`)</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/qradar.html" data-name="qradar" data-status="field-tested" data-kind="connector">
+  <h3>IBM QRadar SIEM</h3>
+  <p class="card-desc">IBM QRadar SIEM, REST API v14.0 (offenses, Ariel/AQL, assets, log sources; gated offense writes)</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-field--tested-yellow" alt="status: field-tested"> <img class="badge" src="https://img.shields.io/badge/version-0.1.3-blue" alt="version 0.1.3"></div>
+</a>
+
+<a class="card" href="connector/splunk-enterprise-security.html" data-name="splunk-enterprise-security" data-status="draft" data-kind="connector">
+  <h3>Splunk Enterprise Security</h3>
+  <p class="card-desc">Splunk Enterprise Security Mission Control API (investigations, findings, notes, risk scores, id-only asset/identity lookups; read-only)</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/sophos-central.html" data-name="sophos-central" data-status="field-tested" data-kind="connector">
+  <h3>Sophos Central (Fusion)</h3>
+  <p class="card-desc">Sophos Central / Fusion (tenant-scoped REST: alerts, cases, endpoints; read-only; SIEM events + detections deferred)</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-field--tested-yellow" alt="status: field-tested"> <img class="badge" src="https://img.shields.io/badge/version-0.1.3-blue" alt="version 0.1.3"></div>
+</a>
+
+<a class="card" href="connector/tanium.html" data-name="tanium" data-status="draft" data-kind="connector">
+  <h3>Tanium</h3>
+  <p class="card-desc">Tanium Cloud -- Asset, Comply, Patch (Gateway GraphQL) and Threat Response (legacy REST, best-effort); read-only</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/jira-datacenter.html" data-name="jira-datacenter" data-status="field-tested" data-kind="connector">
+  <h3>Jira Data Center</h3>
+  <p class="card-desc">Jira Data Center (on-prem), REST API v2 / JQL (issues, projects, fields; plus `--yes`-gated comment / create / transition / assign writes)</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-field--tested-yellow" alt="status: field-tested"> <img class="badge" src="https://img.shields.io/badge/version-0.3.0-blue" alt="version 0.3.0"></div>
+</a>
+
+<a class="card" href="connector/proofpoint-ices.html" data-name="proofpoint-ices" data-status="draft" data-kind="connector">
+  <h3>Proofpoint Email Security (ICES)</h3>
+  <p class="card-desc">Proofpoint Email Security (ICES / rebranded Tessian: Defender, Guardian, Architect) -- Security Events, User Groups, User Monitoring, Anomalies, Audit Trail; read-only</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/palo-alto-xsoar.html" data-name="palo-alto-xsoar" data-status="draft" data-kind="connector">
+  <h3>Palo Alto Cortex XSOAR</h3>
+  <p class="card-desc">Palo Alto Cortex XSOAR 8 (cloud), `/xsoar/public/v1` -- incident search and get, Standard-type API key; read-only</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/cisco-secure-access-ravpn.html" data-name="cisco-secure-access-ravpn" data-status="draft" data-kind="connector">
+  <h3>Cisco Secure Access RA VPN</h3>
+  <p class="card-desc">Cisco Secure Access RA VPN (`api.sse.cisco.com`) -- remote-access (AnyConnect/Secure Client) historical events + active VPN sessions; read-only</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/taegis.html" data-name="taegis" data-status="draft" data-kind="connector">
+  <h3>Secureworks Taegis XDR</h3>
+  <p class="card-desc">Secureworks Taegis XDR (Sophos) -- single GraphQL gateway: alerts + investigations (CQL), endpoint assets; read-only</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.2-blue" alt="version 0.1.2"></div>
+</a>
+
+<a class="card" href="connector/ionic.html" data-name="ionic" data-status="draft" data-kind="connector">
+  <h3>Ionic Data Platform Connector</h3>
+  <p class="card-desc">Ionic Data Platform -- SQL engine, indexed term search (REGEXP tokens), catalog and schema inspection</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/tines.html" data-name="tines" data-status="draft" data-kind="connector">
+  <h3>Tines</h3>
+  <p class="card-desc">Tines SOAR (`/api/v1`) -- stories and actions: catalog, detail, webhook-trigger discovery with secrets redacted; read-only</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.2.0-blue" alt="version 0.2.0"></div>
+</a>
+
+<a class="card" href="connector/darktrace.html" data-name="darktrace" data-status="draft" data-kind="connector">
+  <h3>Darktrace</h3>
+  <p class="card-desc">Darktrace API -- model alerts, AI Analyst incident events, and devices; read-only draft with documented HMAC signing seam</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/cortex-xdr.html" data-name="cortex-xdr" data-status="draft" data-kind="connector">
+  <h3>Palo Alto Cortex XDR</h3>
+  <p class="card-desc">Palo Alto Cortex XDR `public_api/v1` -- read-only queries across alerts, incidents, and endpoints, plus incident extra-data hydration</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/servicenow-chatops.html" data-name="servicenow-chatops" data-status="draft" data-kind="connector">
+  <h3>ServiceNow ChatOps</h3>
+  <p class="card-desc">ServiceNow Table API, scoped to one customer-configured table -- creates a verification-request record assigned to a target user for the customer&#x27;s own ServiceNow ChatOps/Now Actions flow to deliver via Slack/Teams, then polls for a reply; `--yes`-gated create/comment/close writes</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/tenable-io.html" data-name="tenable-io" data-status="draft" data-kind="connector">
+  <h3>Tenable Vulnerability Management (Tenable.io)</h3>
+  <p class="card-desc">Tenable Vulnerability Management (`cloud.tenable.com`) -- `workbenches/vulnerabilities` findings query, aggregated by plugin, plus per-plugin per-asset detail; read-only</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/runzero.html" data-name="runzero" data-status="draft" data-kind="connector">
+  <h3>runZero</h3>
+  <p class="card-desc">runZero Export API (read-only ET token) -- assets, services, software, vulnerabilities, wireless, sites, certificates, directory users/groups, findings, tasks, subnet utilization, SNMP ARP cache; no write capability by token design</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/cisco-xdr-incidents.html" data-name="cisco-xdr-incidents" data-status="draft" data-kind="connector">
+  <h3>Cisco XDR Incidents &amp; Investigations</h3>
+  <p class="card-desc">Cisco XDR Incidents &amp; Investigations (Conure v2 API, region-specific host) -- incident search, get-by-id, per-incident/investigation detail hydration (summary, entities, observables, verdicts, events, MITRE, graph); read-only</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="connector/pagerduty.html" data-name="pagerduty" data-status="field-tested" data-kind="connector">
+  <h3>PagerDuty</h3>
+  <p class="card-desc">PagerDuty REST API v2 incident lifecycle -- create/escalate an incident (ungated, for unattended SOC-less escalation), list/get/update incidents, add a note, plus services/escalation-policies/priorities/on-calls lookups; Events API v2 (routing-key ingestion) deliberately out of scope</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-field--tested-yellow" alt="status: field-tested"> <img class="badge" src="https://img.shields.io/badge/version-0.2.0-blue" alt="version 0.2.0"></div>
+</a>
+
+<a class="card" href="reference/cb-edr-reference.html" data-name="cb-edr-reference" data-status="draft" data-kind="reference">
+  <h3>Carbon Black EDR (on-prem) — Reference / Ad-hoc Query Cookbook</h3>
+  <p class="card-desc">Carbon Black EDR (on-prem / Response), CBR 7.x</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-1.3.1-blue" alt="version 1.3.1"></div>
+</a>
+
+<a class="card" href="reference/cortex-xdr-reference.html" data-name="cortex-xdr-reference" data-status="draft" data-kind="reference">
+  <h3>Cortex XDR — Reference / Ad-hoc Query Cookbook</h3>
+  <p class="card-desc">Cortex XDR / XSIAM, `public_api/v1`</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-1.0.2-blue" alt="version 1.0.2"></div>
+</a>
+
+<a class="card" href="reference/qradar-reference.html" data-name="qradar-reference" data-status="superseded" data-kind="reference">
+  <h3>Qradar Reference</h3>
+  <p class="card-desc">IBM QRadar SIEM, REST API v14.0</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-superseded-red" alt="status: superseded"> <img class="badge" src="https://img.shields.io/badge/version-0.1.1-blue" alt="version 0.1.1"></div>
+</a>
+
+<a class="card" href="reference/github-reference.html" data-name="github-reference" data-status="draft" data-kind="reference">
+  <h3>GitHub — Reference / Issues-focused Query Cookbook</h3>
+  <p class="card-desc">GitHub.com REST API v3</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+<a class="card" href="reference/wiz-reference.html" data-name="wiz-reference" data-status="draft" data-kind="reference">
+  <h3>Wiz — Reference / CNAPP GraphQL Query Cookbook</h3>
+  <p class="card-desc">Wiz CNAPP GraphQL API</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-draft-lightgrey" alt="status: draft"> <img class="badge" src="https://img.shields.io/badge/version-0.1.2-blue" alt="version 0.1.2"></div>
+</a>
+
+<a class="card" href="reference/jira-datacenter-reference.html" data-name="jira-datacenter-reference" data-status="superseded" data-kind="reference">
+  <h3>Jira Data Center — Reference / Ad-hoc Query Cookbook</h3>
+  <p class="card-desc">Jira Data Center, REST API v2</p>
+  <div class="card-meta"><img class="badge" src="https://img.shields.io/badge/status-superseded-red" alt="status: superseded"> <img class="badge" src="https://img.shields.io/badge/version-0.1.0-blue" alt="version 0.1.0"></div>
+</a>
+
+  </div>
+  <p class="empty" id="empty" hidden>No connectors match.</p>
+</main>
+<script>
+(function() {
+  var buttons = document.querySelectorAll('.filter-btn');
+  var search = document.getElementById('search');
+  var cards = document.querySelectorAll('.card');
+  var empty = document.getElementById('empty');
+  var activeKind = 'all';
+
+  function apply() {
+    var q = search.value.trim().toLowerCase();
+    var visible = 0;
+    cards.forEach(function(c) {
+      var kindOk = activeKind === 'all' || c.dataset.kind === activeKind;
+      var textOk = !q || c.textContent.toLowerCase().indexOf(q) !== -1;
+      var show = kindOk && textOk;
+      c.hidden = !show;
+      if (show) visible++;
+    });
+    empty.hidden = visible !== 0;
+  }
+
+  buttons.forEach(function(b) {
+    b.addEventListener('click', function() {
+      buttons.forEach(function(x) { x.classList.remove('active'); });
+      b.classList.add('active');
+      activeKind = b.dataset.filterKind;
+      apply();
+    });
+  });
+  search.addEventListener('input', apply);
+})();
+</script>
+
+</body>
+</html>

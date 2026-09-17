@@ -76,6 +76,29 @@ a { color: var(--accent); }
   border-radius: 999px;
 }
 
+.repo-link {
+  margin-left: auto;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.repo-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.source-link {
+  display: inline-block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .hero {
   max-width: 720px;
   margin-bottom: 28px;

@@ -20,7 +20,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCS = REPO_ROOT / "docs"
 LOGO_SRC_DIR = REPO_ROOT / "assets" / "logos"
-RAW_BASE = "https://github.com/oatman-crogl/crogl-connector-skills-public/raw/main"
+REPO_URL = "https://github.com/oatman-crogl/crogl-connector-skills-public"
+RAW_BASE = f"{REPO_URL}/raw/main"
 
 MARKED_CDN = "https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"
 
@@ -177,9 +178,10 @@ PAGE_FOOT = """
 </html>
 """
 
-NAV = """<header class="site-header">
-  <a class="wordmark" href="{root}index.html">Crogl Connector Library</a>
+NAV = f"""<header class="site-header">
+  <a class="wordmark" href="{{root}}index.html">Crogl Connector Library</a>
   <span class="preview-pill">Preview</span>
+  <a class="repo-link" href="{REPO_URL}" target="_blank" rel="noopener">View on GitHub</a>
 </header>
 """
 
@@ -249,6 +251,10 @@ def render_detail_page(entry, css_path: str) -> str:
 
     download_html = f'<p><a class="btn btn-primary" href="{entry["download_url"]}">Download {entry["kind_label"]}</a></p>\n'
 
+    source_dir = "community" if entry["kind"] == "connector" else "references"
+    source_url = f"{REPO_URL}/tree/main/{source_dir}/{entry['key']}"
+    source_html = f'<p><a class="source-link" href="{source_url}" target="_blank" rel="noopener">View source on GitHub &rarr;</a></p>\n'
+
     md_b64 = md_embed(entry["body"])
     tags_html = tags_pill_html(entry["key"])
     logo_html = logo_img_html(entry["key"], css_class="logo-detail")
@@ -265,6 +271,7 @@ def render_detail_page(entry, css_path: str) -> str:
   <p class="blurb">{html.escape(entry['blurb'])}</p>
   {download_html}
   {provisioning_html}
+  {source_html}
   {fields_html}
   <h2>Full documentation</h2>
   <div id="md-content" class="markdown-body">Loading&hellip;</div>
